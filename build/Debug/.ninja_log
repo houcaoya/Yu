@@ -74,3 +74,5 @@
 23	955	7878632989655173	CMakeFiles/Yu.dir/Cubot/Task/Src/init_task.c.obj	8609ae9c07dc5e03
 32	972	7878632989741644	CMakeFiles/Yu.dir/Cubot/Task/Src/referee_task.c.obj	a92c2856704be513
 972	1930	7878632999139712	Yu.elf	29a3649f6f2fa9f5
+18	862	7878634510356940	CMakeFiles/Yu.dir/Cubot/Driver/Src/driver_usart.c.obj	f994968a7221d3bd
+863	1805	7878634518804308	Yu.elf	29a3649f6f2fa9f5

@@ -84,41 +84,52 @@ void UARTx_Init(UART_Object* uart)
 
 /**
  * @brief UART空闲中断处理函数
- * @param uart UART对象指针，包含UART句柄、回调函数、缓冲区等信息
- * @note 该函数处理UART空闲中断，当检测到总线空闲时停止DMA传输，
- *       清除相关标志位，并将接收到的数据发送到流缓冲区中
+ * 
+ * 当UART检测到总线空闲时（即一段时间内没有接收到数据），会触发该中断处理函数。
+ * 此函数用于停止当前的DMA接收、获取已接收的数据长度，并将数据发送至流缓冲区，
+ * 同时重新启动下一轮DMA接收。
+ *
+ * @param uart 指向UART对象结构体的指针，包含UART句柄及相关缓冲区信息
  */
 void UART_Idle_Handler(UART_Object *uart)
 {
-	// 检查UART空闲标志位
+	// 检查UART空闲标志位是否被置起
 	if ((__HAL_UART_GET_FLAG(uart->Handle, UART_FLAG_IDLE) != RESET))
     {
-    	// 停止当前正在进行的DMA接收操作
+    	// 停止当前正在进行的DMA接收操作，防止数据覆盖或冲突
 		HAL_UART_DMAStop(uart->Handle);          
 		
-		// 清除UART空闲标志位，为下一次接收做准备
+		// 清除UART空闲标志位，为下一次空闲中断做准备
 		__HAL_UART_CLEAR_IDLEFLAG(uart->Handle); 
 		
-		// 清除可能存在的溢出错误标志位
+		// 清除可能存在的溢出错误标志位，避免影响后续通信
      	 __HAL_UART_CLEAR_OREFLAG(uart->Handle);
      	 
-		// 判断是否为首次接收到空闲信号，若是则标记为非首次，否则处理数据
+		// 判断是否为首次进入空闲状态。首次不处理数据，仅标记已进入过空闲状态
 		if (uart->is_first_idle == 0)  
        		uart->is_first_idle = 1;
 		else 
 		{
-			
+			// 计算本次DMA实际接收到的数据长度
 			uint16_t received_len = sizeof(uart->uart_RxBuffer[uart->activeBuffer].Data) - __HAL_DMA_GET_COUNTER(uart->Handle->hdmarx);
-			// 将接收到的数据从DMA缓冲区发送到流缓冲区中
-			if(uart->stream_buffer != NULL &&uart->stream_buffer != NULL)
+
+			// 若流缓冲区有效，则将接收到的数据发送到流缓冲区中
+			if(uart->stream_buffer != NULL && uart->stream_buffer != NULL)
 			{
 				BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+
+				// 在中断服务例程中向流缓冲区发送数据
 				xStreamBufferSendFromISR(uart->stream_buffer, &uart->uart_RxBuffer[uart->activeBuffer].Data, received_len, &pxHigherPriorityTaskWoken);
+
+				// 切换活动缓冲区，实现双缓冲机制
 				uart->activeBuffer = 1 - uart->activeBuffer;
-				// 根据任务优先级情况决定是否进行任务切换
+
+				// 重新启动DMA接收，继续监听新数据
+				HAL_UART_Receive_DMA(uart->Handle, uart->uart_RxBuffer[uart->activeBuffer].Data,200);  
+
+				// 如果有更高优先级的任务因本次发送而被唤醒，则执行一次上下文切换
 				portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 			}
-		}
-		HAL_UART_Receive_DMA(uart->Handle, uart->uart_RxBuffer[uart->activeBuffer].Data,200);      
+		}    
     }
 }
