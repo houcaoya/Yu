@@ -49,41 +49,34 @@
  */
 #include "rm_motor.h"
 #include "user_lib.h"
-/**
- * @brief 对应大疆电机不同控制ID的CAN数据发送缓存区
- */
-CAN_TxBuffer_t txBuffer0x200forCAN1 =   
-    {
-    .txHeader.Identifier = 0x200,
-    .txHeader.DataLength = FDCAN_DLC_BYTES_8
-    };
-CAN_TxBuffer_t txBuffer0x1FFforCAN1 = 
-    {
-    .txHeader.Identifier = 0x1FF,
-    .txHeader.DataLength = FDCAN_DLC_BYTES_8
-    };
-CAN_TxBuffer_t txBuffer0x2FFforCAN1 =   
-    {
-    .txHeader.Identifier = 0x2FF,
-    .txHeader.DataLength = FDCAN_DLC_BYTES_8
-    };
-CAN_TxBuffer_t txBuffer0x200forCAN2 = 
-    {
-    .txHeader.Identifier = 0x200,
-    .txHeader.DataLength = FDCAN_DLC_BYTES_8
-    };
-CAN_TxBuffer_t txBuffer0x1FFforCAN2 =   
-    {
-    .txHeader.Identifier = 0x1FF,
-    .txHeader.DataLength = FDCAN_DLC_BYTES_8
-    };
-CAN_TxBuffer_t txBuffer0x2FFforCAN2 = 
-    {
-    .txHeader.Identifier = 0x2FF,
-    .txHeader.DataLength = FDCAN_DLC_BYTES_8
-    };
+
+static CAN_TxBuffer_t txBuffer[2][3];
 
 static Motor_t *Motor_QuickMap[2][0x0C] = {NULL};
+
+void Motor_DriverInit(void)
+{
+    // 定义三个标准控制ID: 0=0x1FF, 1=0x200, 2=0x2FF (顺序需与填充逻辑对应)
+    const uint16_t std_ids[3] = {0x1FF, 0x200, 0x2FF};
+    
+    for (int i = 0; i < 2; i++) // 遍历 CAN1, CAN2
+    {
+        for (int j = 0; j < 3; j++) // 遍历 3 个控制帧
+        {
+            txBuffer[i][j].txHeader.Identifier = std_ids[j];
+            txBuffer[i][j].txHeader.DataLength = FDCAN_DLC_BYTES_8;
+            txBuffer[i][j].txHeader.IdType     = FDCAN_STANDARD_ID;
+            txBuffer[i][j].txHeader.TxFrameType= FDCAN_DATA_FRAME;
+            txBuffer[i][j].txHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+            txBuffer[i][j].txHeader.BitRateSwitch = FDCAN_BRS_OFF;
+            txBuffer[i][j].txHeader.FDFormat = FDCAN_CLASSIC_CAN;
+            txBuffer[i][j].txHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+            txBuffer[i][j].txHeader.MessageMarker = 0;
+        }
+    }
+}
+
+
 
 /**
  * @brief 将电机编码器数据转换为角度值
@@ -111,97 +104,16 @@ static void MotorEcdtoAngle(Motor_t *motor)
 }
 
 /**
- * @brief  电机输出限幅。
- */
-static void MotorOutputLimit(Motor_t *motor)
-{
-    if ((&motor->treatedData)->motor_output > motor->param.current_limit)
-        (&motor->treatedData)->motor_output = motor->param.current_limit;
-    else if ((&motor->treatedData)->motor_output < (-motor->param.current_limit))
-        (&motor->treatedData)->motor_output = (-motor->param.current_limit);
-}
-
-/**
- * @brief  针对C610和C620电调的控制ID，将待发送数据填入CAN发送缓存区的函数指针。
- */
-static uint8_t CAN_fill_3508_2006_data(CAN_Instance_t can, TreatedData_t motorData, uint16_t id)
-{
-    if (can.canHandler == &hfdcan1) 
-    {
-        if (id >= 0x201 && id <= 0x204) 
-        {
-            txBuffer0x200forCAN1.data[(id - 0x201) * 2]     = motorData.motor_output >> 8;
-            txBuffer0x200forCAN1.data[(id - 0x201) * 2 + 1] = motorData.motor_output & 0xff;
-        } 
-        else if (id >= 0x205 && id <= 0x208) 
-        {
-            txBuffer0x1FFforCAN1.data[(id - 0x205) * 2]     = motorData.motor_output >> 8;
-            txBuffer0x1FFforCAN1.data[(id - 0x205) * 2 + 1] = motorData.motor_output & 0xff;
-        }
-    } 
-    else if (can.canHandler == &hfdcan2) 
-    {
-        if (id >= 0x201 && id <= 0x204) 
-        {
-            txBuffer0x200forCAN2.data[(id - 0x201) * 2]     = motorData.motor_output >> 8;
-            txBuffer0x200forCAN2.data[(id - 0x201) * 2 + 1] = motorData.motor_output & 0xff;
-        } 
-        else if (id >= 0x205 && id <= 0x208) 
-        {
-            txBuffer0x1FFforCAN2.data[(id - 0x205) * 2]     = motorData.motor_output >> 8;
-            txBuffer0x1FFforCAN2.data[(id - 0x205) * 2 + 1] = motorData.motor_output & 0xff;
-        } 
-        else if (id >= 0x209 && id <= 0x20B) 
-        {
-            txBuffer0x2FFforCAN2.data[(id - 0x209) * 2]     = motorData.motor_output >> 8;
-            txBuffer0x2FFforCAN2.data[(id - 0x209) * 2 + 1] = motorData.motor_output & 0xff;
-        }
-    }
-    return 0;
-}
-
-/**
- * @brief  针对GM6020电调的控制ID，将待发送数据填入CAN发送缓存区的函数指针。
- */
-static uint8_t CAN_fill_6020_data(CAN_Instance_t can, TreatedData_t motorData, uint16_t id)
-{
-    if (can.canHandler == &hfdcan1) 
-    {
-        if (id >= 0x205 && id <= 0x208) {
-            txBuffer0x1FFforCAN1.data[(id - 0x205) * 2]     = motorData.motor_output >> 8;
-            txBuffer0x1FFforCAN1.data[(id - 0x205) * 2 + 1] = motorData.motor_output & 0xff;
-        } else if (id >= 0x209 && id <= 0x20B) {
-            txBuffer0x2FFforCAN1.data[(id - 0x209) * 2]     = motorData.motor_output >> 8;
-            txBuffer0x2FFforCAN1.data[(id - 0x209) * 2 + 1] = motorData.motor_output & 0xff;
-        }
-    } 
-    else if (can.canHandler == &hfdcan2) 
-    {
-        if (id >= 0x205 && id <= 0x208) 
-        {
-            txBuffer0x1FFforCAN2.data[(id - 0x205) * 2]     = motorData.motor_output >> 8;
-            txBuffer0x1FFforCAN2.data[(id - 0x205) * 2 + 1] = motorData.motor_output & 0xff;
-        } 
-        else if (id >= 0x209 && id <= 0x20B) 
-        {
-            txBuffer0x2FFforCAN2.data[(id - 0x209) * 2]     = motorData.motor_output >> 8;
-            txBuffer0x2FFforCAN2.data[(id - 0x209) * 2 + 1] = motorData.motor_output & 0xff;
-        }
-    }
-    return 0;
-}
-
-/**
- * @brief  电机数据更新回调函数，只在motor.c文件内调用。（大疆电机反馈报文格式相同）
+ * @brief  电机数据更新回调
  */
 static uint8_t CAN_update_data(RawData_t *raw, TreatedData_t *treated, uint8_t *data)
 {
-	treated->last_ecd 	 = raw->raw_ecd;
-    raw->raw_ecd         = data[0] << 8 | data[1];
-    raw->speed_rpm       = data[2] << 8 | data[3];
-    raw->torque_current  = data[4] << 8 | data[5];
+    treated->last_ecd    = raw->raw_ecd;
+    raw->raw_ecd         = (int16_t)(data[0] << 8 | data[1]);
+    raw->speed_rpm       = (int16_t)(data[2] << 8 | data[3]);
+    raw->torque_current  = (int16_t)(data[4] << 8 | data[5]);
     raw->temperature     = data[6];
-	treated->fps         ++;
+    treated->fps++;
     return 0;
 }
 
@@ -217,11 +129,12 @@ static uint8_t CAN_update_data(RawData_t *raw, TreatedData_t *treated, uint8_t *
  */
 void MotorInit(Motor_t *motor, uint16_t ecdOffset, motor_type type, uint16_t gearRatio, CanNumber canx, uint16_t id)
 {
-    (&motor->param)->ecd_offset      = ecdOffset;
-    (&motor->param)->motor_type      = type;
-    (&motor->param)->can_id          = id;
-    (&motor->param)->reduction_ratio = gearRatio;
-    (&motor->param)->can_number      = canx;
+    motor->param.ecd_offset      = ecdOffset;
+    motor->param.motor_type      = type;
+    motor->param.can_id          = id;
+    motor->param.reduction_ratio = gearRatio;
+    motor->param.can_number      = canx;
+    motor->MotorUpdate           = CAN_update_data;
 
     if (id >= 0x200 && id <= 0x20B) 
     {
@@ -233,30 +146,18 @@ void MotorInit(Motor_t *motor, uint16_t ecdOffset, motor_type type, uint16_t gea
     switch (type) 
     {
         case Motor3508: 
-        {
-            (&motor->param)->current_limit = CURRENT_LIMIT_FOR_3508;
-            (&motor->param)->ecd_range     = ECD_RANGE_FOR_3508;
-            motor->MotorUpdate             = CAN_update_data;
-            motor->FillMotorData           = CAN_fill_3508_2006_data;
+            motor->param.current_limit = CURRENT_LIMIT_FOR_3508;
+            motor->param.ecd_range     = ECD_RANGE_FOR_3508;
             break;
-        }
         case Motor6020: 
-        {
-            (&motor->param)->current_limit = VOLTAGE_LIMIT_FOR_6020;
-            (&motor->param)->ecd_range     = ECD_RANGE_FOR_6020;
-            motor->MotorUpdate             = CAN_update_data;
-            motor->FillMotorData           = CAN_fill_6020_data;
+            motor->param.current_limit = VOLTAGE_LIMIT_FOR_6020;
+            motor->param.ecd_range     = ECD_RANGE_FOR_6020;
             break;
-        }
         case Motor2006: 
-        {
-            (&motor->param)->current_limit = CURRENT_LIMIT_FOR_2006;
-            (&motor->param)->ecd_range     = ECD_RANGE_FOR_2006;
-            motor->MotorUpdate             = CAN_update_data;
-            motor->FillMotorData           = CAN_fill_3508_2006_data;
+            motor->param.current_limit = CURRENT_LIMIT_FOR_2006;
+            motor->param.ecd_range     = ECD_RANGE_FOR_2006;
             break;
-        }
-        default:;
+        default: break;
     }
 }
 
@@ -294,12 +195,37 @@ void MotorRxCallback(CAN_Instance_t *canObject, CAN_RxBuffer_t *bufferRx)
  */
 void MotorFillData(Motor_t *motor, int32_t output)
 {
+    // 1. 设置并限幅
     motor->treatedData.motor_output = output;
-    MotorOutputLimit(motor);
-    if (motor->param.can_number == CAN1)
-        motor->FillMotorData(can1, motor->treatedData, motor->param.can_id);
-    else if (motor->param.can_number == CAN2)
-        motor->FillMotorData(can2, motor->treatedData, motor->param.can_id);
+    (&motor->treatedData)->motor_output = LIMIT((&motor->treatedData)->motor_output, -motor->param.current_limit, motor->param.current_limit);
+
+    // 2. 准备参数
+    uint8_t can_idx = (motor->param.can_number == CAN2) ? 1 : 0;
+    uint16_t id     = motor->param.can_id;
+    int16_t val     = (int16_t)motor->treatedData.motor_output;
+    
+    int buf_idx = -1; // 0:1FF, 1:200, 2:2FF
+    int offset  = 0;
+
+    // 3. 计算缓冲区索引和字节偏移
+    if (id >= 0x201 && id <= 0x204) {
+        buf_idx = 1; // ID: 0x200
+        offset  = (id - 0x201) * 2;
+    } 
+    else if (id >= 0x205 && id <= 0x208) {
+        buf_idx = 0; // ID: 0x1FF
+        offset  = (id - 0x205) * 2;
+    } 
+    else if (id >= 0x209 && id <= 0x20B) {
+        buf_idx = 2; // ID: 0x2FF
+        offset  = (id - 0x209) * 2;
+    }
+
+    // 4. 填充数据
+    if (buf_idx >= 0) {
+        txBuffer[can_idx][buf_idx].data[offset]     = (val >> 8) & 0xFF;
+        txBuffer[can_idx][buf_idx].data[offset + 1] = val & 0xFF;
+    }
 }
 
 /**
@@ -307,34 +233,18 @@ void MotorFillData(Motor_t *motor, int32_t output)
  */
 uint16_t MotorCanOutput(CAN_Instance_t can, int16_t IDforTxBuffer)
 {
-    switch (IDforTxBuffer) 
-    {
-        case 0x200: 
-        {
-            if (can.canHandler == &hfdcan1)
-                CAN_Send(&can, &txBuffer0x200forCAN1);
-            else if (can.canHandler == &hfdcan2)
-                CAN_Send(&can, &txBuffer0x200forCAN2);
-            break;
-        }
-        case 0x1ff: 
-        {
-            if (can.canHandler == &hfdcan1)
-                CAN_Send(&can, &txBuffer0x1FFforCAN1);
-            else if (can.canHandler == &hfdcan2)
-                CAN_Send(&can, &txBuffer0x1FFforCAN2);
-            break;
-        }
-        case 0x2ff: 
-        {
-            if (can.canHandler == &hfdcan1)
-                CAN_Send(&can, &txBuffer0x2FFforCAN1);
-            else if (can.canHandler == &hfdcan2)
-                CAN_Send(&can, &txBuffer0x2FFforCAN2);
-            break;
-        }
-        default:;
+    uint8_t can_idx = (can.canHandler == &hfdcan2) ? 1 : 0;
+    int buf_idx = -1;
+
+    // 匹配 Tx Buffer 索引 (与 MotorFillData 中的逻辑对应)
+    switch (IDforTxBuffer) {
+        case 0x1FF: buf_idx = 0; break;
+        case 0x200: buf_idx = 1; break;
+        case 0x2FF: buf_idx = 2; break;
+        default: return 1; // 错误 ID
     }
-	
-    return 0;
+
+    // 直接发送，无需多余判断
+    // 注意：确保 driver_can.c 的 CAN_Send 能够处理我们构造的 txBuffer
+    return CAN_Send(&can, &txBuffer[can_idx][buf_idx]);
 }

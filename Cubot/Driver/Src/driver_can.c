@@ -91,11 +91,7 @@ CAN_Instance_t can1 = {
             .FDFormat            = FDCAN_CLASSIC_CAN,        /**< 使用经典CAN格式 */
             .TxEventFifoControl  = FDCAN_NO_TX_EVENTS,       /**< 不记录发送事件 */
             .MessageMarker       = 0x00,                     /**< 消息标记为0 */
-        },
-    .devicesList = {
-        &(can1.devicesList),  /**< 设备链表指针1，初始化为指向自身 */
-        &(can1.devicesList),  /**< 设备链表指针2，初始化为指向自身 */
-    },  /**< 创建CAN接收队列，队列长度为10，每个元素大小为接收数据缓冲区大小 */
+        } /**< 创建CAN接收队列，队列长度为10，每个元素大小为接收数据缓冲区大小 */
 };
 
 CAN_Instance_t can2 = {
@@ -109,11 +105,7 @@ CAN_Instance_t can2 = {
             .FDFormat            = FDCAN_CLASSIC_CAN,        /**< 使用经典CAN格式 */
             .TxEventFifoControl  = FDCAN_NO_TX_EVENTS,       /**< 不记录发送事件 */
             .MessageMarker       = 0x00,                     /**< 消息标记为0 */
-        },
-    .devicesList = {
-        &(can2.devicesList),  /**< 设备链表指针1，初始化为指向自身 */
-        &(can2.devicesList),  /**< 设备链表指针2，初始化为指向自身 */
-    },
+        }
 };
 
 /**

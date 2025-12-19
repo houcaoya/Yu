@@ -97,3 +97,11 @@
 98	1198	7878650872989013	CMakeFiles/Yu.dir/Core/Src/freertos.c.obj	fb884e2890a1ddda
 82	1335	7878650872833748	CMakeFiles/Yu.dir/Cubot/Device/Src/rm_motor.c.obj	32e7cd24a69bc1df
 1335	2300	7878650885359520	Yu.elf	29a3649f6f2fa9f5
+20	1311	7878661391767882	CMakeFiles/Yu.dir/Cubot/Driver/Src/driver_can.c.obj	3cfd224b0472a81c
+38	1322	7878661391955935	CMakeFiles/Yu.dir/Cubot/Task/Src/can_task.c.obj	6440e85416da87e5
+51	1368	7878661392064900	CMakeFiles/Yu.dir/Cubot/Task/Src/init_task.c.obj	8609ae9c07dc5e03
+64	1378	7878661392217274	CMakeFiles/Yu.dir/Cubot/Task/Src/uart_task.c.obj	f3b51e663087ebca
+78	1389	7878661392348668	CMakeFiles/Yu.dir/Cubot/Task/Src/control_task.c.obj	e295b88941c6c4b8
+113	1391	7878661392698964	CMakeFiles/Yu.dir/Core/Src/freertos.c.obj	fb884e2890a1ddda
+94	1531	7878661392511286	CMakeFiles/Yu.dir/Cubot/Device/Src/rm_motor.c.obj	32e7cd24a69bc1df
+1531	2576	7878661406885837	Yu.elf	29a3649f6f2fa9f5
