@@ -87,42 +87,45 @@ void UARTx_Init(UART_Object* uart, UART_RxIdleCallback rxIdleCallback)
 		HAL_UART_Receive_DMA(uart->Handle, uart->uart_RxBuffer[uart->activeBuffer].Data,200);		
     }
 }
+
 /**
  * @brief UART空闲中断处理函数
- * @param huart UART句柄指针，用于标识具体的UART设备
- * @note 该函数处理UART空闲中断，当检测到空闲标志时停止DMA接收，
- *       清除相关标志位，调用用户回调函数处理接收到的数据，
- *       然后重新启动DMA接收
+ * @param uart UART对象指针，包含UART句柄、回调函数、缓冲区等信息
+ * @note 该函数处理UART空闲中断，当检测到总线空闲时停止DMA传输，
+ *       清除相关标志位，并将接收到的数据发送到流缓冲区中
  */
 void UART_Idle_Handler(UART_Object *uart)
 {
-	// 检查空闲标志是否置位且接收回调函数不为空
-	if ((__HAL_UART_GET_FLAG(uart->Handle, UART_FLAG_IDLE) != RESET) && (uart->RxIdleCallback!=NULL))
+	// 检查UART空闲标志位
+	if ((__HAL_UART_GET_FLAG(uart->Handle, UART_FLAG_IDLE) != RESET))
     {
-		// 停止当前的DMA传输
+    	// 停止当前正在进行的DMA接收操作
 		HAL_UART_DMAStop(uart->Handle);          
-		// 清除UART空闲标志位
+		
+		// 清除UART空闲标志位，为下一次接收做准备
 		__HAL_UART_CLEAR_IDLEFLAG(uart->Handle); 
-		// 清除UART溢出错误标志位
+		
+		// 清除可能存在的溢出错误标志位
      	 __HAL_UART_CLEAR_OREFLAG(uart->Handle);
-		// 判断是否为第一次接收到空闲信号
+     	 
+		// 判断是否为首次接收到空闲信号，若是则标记为非首次，否则处理数据
 		if (uart->is_first_idle == 0)  
        		uart->is_first_idle = 1;
 		else 
 		{
-			BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+			
+			uint16_t received_len = sizeof(uart->uart_RxBuffer[uart->activeBuffer].Data) - __HAL_DMA_GET_COUNTER(uart->Handle->hdmarx);
+			// 将接收到的数据从DMA缓冲区发送到流缓冲区中
 			if(uart->stream_buffer != NULL)
 			{
-				xStreamBufferSendFromISR(uart->stream_buffer, &uart->uart_RxBuffer[uart->activeBuffer].Data, sizeof(uart->uart_RxBuffer[uart->activeBuffer].Data), &pxHigherPriorityTaskWoken);
-				HAL_UART_DMAResume(uart->Handle);
-				HAL_UART_Receive_DMA(uart->Handle, uart->uart_RxBuffer[uart->activeBuffer].Data,200);
+				BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+				xStreamBufferSendFromISR(uart->stream_buffer, &uart->uart_RxBuffer[uart->activeBuffer].Data, received_len, &pxHigherPriorityTaskWoken);
+				
+				// 根据任务优先级情况决定是否进行任务切换
 				portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 			}
-			// 调用用户定义的接收完成回调函数处理接收数据
-			// uart->RxIdleCallback(uart->uart_RxBuffer[uart->activeBuffer].Data, usart_rx_num); //<用户回调
-		}      
-		// 恢复并重新启动DMA接收
-		// HAL_UART_DMAResume(uart->Handle);
-		// HAL_UART_Receive_DMA(uart->Handle, uart->uart_RxBuffer[uart->activeBuffer].Data,200);
+		}
+		HAL_UART_DMAResume(uart->Handle);
+		HAL_UART_Receive_DMA(uart->Handle, uart->uart_RxBuffer[uart->activeBuffer].Data,200);      
     }
 }
