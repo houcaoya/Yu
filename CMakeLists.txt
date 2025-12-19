@@ -62,8 +62,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Cubot/Task/Src/init_task.c
     Cubot/Task/Src/uart_task.c
     Cubot/Task/Src/control_task.c
+    Cubot/Task/Src/referee_task.c
     Cubot/Device/Src/rm_motor.c
     Cubot/Algorithm/Src/pid.c
+    
 )
 
 # Add include paths

@@ -96,7 +96,7 @@ void UARTx_Init(UART_Object* uart, UART_RxIdleCallback rxIdleCallback)
  */
 void UART_Idle_Handler(UART_Object *uart)
 {
-
+	uint16_t usart_rx_num;
 	// 检查空闲标志是否置位且接收回调函数不为空
 	if ((__HAL_UART_GET_FLAG(uart->Handle, UART_FLAG_IDLE) != RESET) && (uart->RxIdleCallback!=NULL))
     {
@@ -106,13 +106,13 @@ void UART_Idle_Handler(UART_Object *uart)
 		__HAL_UART_CLEAR_IDLEFLAG(uart->Handle); 
 		// 清除UART溢出错误标志位
      	 __HAL_UART_CLEAR_OREFLAG(uart->Handle);
-      
+		usart_rx_num = 200- ((DMA_Stream_TypeDef *)uart->Handle->hdmarx->Instance)->NDTR;
 		// 判断是否为第一次接收到空闲信号
 		if (uart->is_first_idle == 0)  
        		uart->is_first_idle = 1;
 		else 
 			// 调用用户定义的接收完成回调函数处理接收数据
-			uart->RxIdleCallback(uart->uart_RxBuffer[uart->activeBuffer].Data); //<用户回调
+			uart->RxIdleCallback(uart->uart_RxBuffer[uart->activeBuffer].Data, usart_rx_num); //<用户回调
                 
 		// 恢复并重新启动DMA接收
 		HAL_UART_DMAResume(uart->Handle);

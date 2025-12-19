@@ -16,7 +16,7 @@
  * @param[in]  size	    	串口接收数据的数组长度
  * @note 相当于声明了一个函数指针类型
  */
-typedef uint8_t (*UART_RxIdleCallback)(uint8_t *rx_buffer);
+typedef uint8_t (*UART_RxIdleCallback)(uint8_t *rx_buffer, uint16_t size);
 
 /**
  * @brief	UART接收缓冲区

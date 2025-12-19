@@ -40,13 +40,13 @@
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 85,
+				"line" : 87,
 				"parent" : 0
 			},
 			{
 				"command" : 3,
 				"file" : 0,
-				"line" : 70,
+				"line" : 72,
 				"parent" : 0
 			},
 			{
@@ -202,7 +202,8 @@
 				52,
 				53,
 				54,
-				55
+				55,
+				56
 			]
 		},
 		{
@@ -285,7 +286,7 @@
 			"language" : "ASM",
 			"sourceIndexes" : 
 			[
-				56
+				57
 			]
 		}
 	],
@@ -369,14 +370,15 @@
 				52,
 				53,
 				54,
-				55
+				55,
+				56
 			]
 		},
 		{
 			"name" : "",
 			"sourceIndexes" : 
 			[
-				56
+				57
 			]
 		}
 	],
@@ -416,6 +418,12 @@
 			"backtrace" : 5,
 			"compileGroupIndex" : 0,
 			"path" : "Cubot/Task/Src/control_task.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 5,
+			"compileGroupIndex" : 0,
+			"path" : "Cubot/Task/Src/referee_task.c",
 			"sourceGroupIndex" : 0
 		},
 		{

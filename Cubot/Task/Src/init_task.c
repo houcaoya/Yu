@@ -3,6 +3,7 @@
 #include "control_task.h"
 #include "driver_usart.h"
 #include "driver_can.h"
+#include "referee_task.h"
 #include "rm_motor.h"
 #include "uart_task.h"
 #include "can_task.h"
@@ -27,8 +28,8 @@ void Init_Task(void *argument)
     (void)argument;
 
     /* 初始化UART5硬件并注册回调函数 */
-    UARTx_Init(&huart5, uart5_callback);
-
+    // UARTx_Init(&uart5, uart5_callback);
+    UARTx_Init(&uart3, Refereedata_process);
     /* 初始化CAN硬件并打开CAN设备 */
     CANx_Init(&hfdcan1, CAN1_rxCallBack);
 	CANx_Init(&hfdcan2, CAN2_rxCallBack);
@@ -37,7 +38,8 @@ void Init_Task(void *argument)
 
     BasePID_Init_All();
     /* 创建UART任务用于处理串口通信 */
-    xTaskCreate(Uart_Task, "Uart_Task", 512, NULL, osPriorityNormal, NULL);
+    // xTaskCreate(Uart_Task, "Uart_Task", 512, NULL, osPriorityNormal, NULL);
+    xTaskCreate(Referee_Task, "Referee_Task", 512, NULL, osPriorityNormal, NULL);
     /* 创建CAN任务用于处理CAN通信 */
     xTaskCreate(CanTask_Process, "CanTask_Process", 256, &can1, osPriorityNormal, NULL);
     xTaskCreate(CanTask_Process, "CanTask_Process", 256, &can2, osPriorityNormal, NULL);
