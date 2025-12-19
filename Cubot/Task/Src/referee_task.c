@@ -401,7 +401,8 @@ void Referee_Task(void *argument)
 		{
 			Refereedata_process(task_local_buffer, receivedBytes);
 		}
-
+		#ifdef DEBUG
         uxHighWaterMark_referee = uxTaskGetStackHighWaterMark(NULL);
+		#endif
     }
 }

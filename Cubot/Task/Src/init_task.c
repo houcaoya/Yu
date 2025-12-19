@@ -50,8 +50,9 @@ void Init_Task(void *argument)
     Motor_DriverInit();
 
     /* 获取init任务的栈空间使用情况 */
+    #ifdef DEBUG
     uxHighWaterMark_init = uxTaskGetStackHighWaterMark(NULL);
-
+    #endif
     /* 删除初始化任务自身，释放资源 */
     vTaskDelete(NULL);
 }

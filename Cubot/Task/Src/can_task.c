@@ -27,7 +27,9 @@ void CanTask_Process(void *argument)
         }
         
         /* 获取任务堆栈使用情况，用于监控任务堆栈使用峰值 */
+        #ifdef DEBUG
         uxHighWaterMark_can = uxTaskGetStackHighWaterMark(NULL);
+        #endif
     }
 }
 
