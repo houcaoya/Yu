@@ -82,7 +82,9 @@ CAN_TxBuffer_t txBuffer0x2FFforCAN2 =
     .txHeader.Identifier = 0x2FF,
     .txHeader.DataLength = FDCAN_DLC_BYTES_8
     };
-	
+
+static Motor_t *Motor_QuickMap[2][0x0C] = {NULL};
+
 /**
  * @brief 将电机编码器数据转换为角度值
  * @param motor 指向电机结构体的指针，包含编码器原始数据、参数和处理后的数据
@@ -204,22 +206,6 @@ static uint8_t CAN_update_data(RawData_t *raw, TreatedData_t *treated, uint8_t *
 }
 
 /**
- * @brief 注册电机设备到CAN设备链表上
- */
-void CAN_RegisterMotor(CAN_Instance_t *canx, Motor_t *motor)
-{
-    list_add(&motor->list, (&canx->devicesList));
-}
-
-/**
- * @brief 将电机结构体从CAN设备表上删除
- */
-void CAN_DeleteMotor(Motor_t *motor)
-{
-    list_del(&(motor->list)); //< 判断无误后从链表中删除该设备
-}
-
-/**
  * @brief 电机初始化，设置静态参数，包括编码器零位，电机类型，减速比和id
  *
  * @param motor 		所要初始化的电机
@@ -237,10 +223,12 @@ void MotorInit(Motor_t *motor, uint16_t ecdOffset, motor_type type, uint16_t gea
     (&motor->param)->reduction_ratio = gearRatio;
     (&motor->param)->can_number      = canx;
 
-    if (canx == CAN1)
-        CAN_RegisterMotor(&can1, motor);
-    else if (canx == CAN2)
-        CAN_RegisterMotor(&can2, motor);
+    if (id >= 0x200 && id <= 0x20B) 
+    {
+        uint8_t can_idx = (canx == CAN2) ? 1 : 0;
+        uint8_t id_idx  = id - 0x200;
+        Motor_QuickMap[can_idx][id_idx] = motor;
+    }
 
     switch (type) 
     {
@@ -273,52 +261,33 @@ void MotorInit(Motor_t *motor, uint16_t ecdOffset, motor_type type, uint16_t gea
 }
 
 /**
- * @brief  根据canID在设备链表中寻找对应的电机
- */
-static Motor_t *MotorFind(uint16_t canid, CAN_Instance_t canx)
-{
-    Motor_t *motor = NULL;
-    list_t *node   = NULL;
-
-    for (node = canx.devicesList.next; node != (canx.devicesList.prev->next); node = node->next) //< 对循环链表遍历一圈
-    {
-        motor = list_entry(node, Motor_t, list); //< 输入链表头部所在结点、被嵌入链表的结构体类型、被嵌入链表的结构体类型中链表结点的名称：即可返回嵌入头部所在结点的结构体
-        if (motor->param.can_id == canid) {
-            motor->online_cnt = 0; //< 电机在线，计数清零
-            return motor;
-        }
-    }
-    return NULL;
-}
-
-/**
  * @brief 电机CAN接收回调函数
  * @param canObject CAN实例对象指针，包含接收到的CAN数据
  * @note 该函数用于处理电机相关的CAN接收数据，解析电机反馈信息并更新电机状态
  */
 void MotorRxCallback(CAN_Instance_t *canObject, CAN_RxBuffer_t *bufferRx)
 {
-    /* 从CAN接收数据中提取电机ID，并查找对应的电机对象 */
-    uint32_t id;
-    Motor_t *temp_motor = NULL;
+    uint32_t id = bufferRx->rxHeader.Identifier;
+    
+    // 1. 安全检查：ID是否在支持范围内
+    if (id < 0x200 || id > 0x20B) return;
 
-    id         = bufferRx->rxHeader.Identifier;
-    temp_motor = MotorFind(id, *canObject);
-    if (temp_motor != NULL) 
+    // 2. 计算索引
+    uint8_t can_idx = (canObject->canHandler == &hfdcan2) ? 1 : 0;
+    uint8_t id_idx  = id - 0x200;
+
+    // 3. 直接获取对象 (无需 MotorFind 遍历)
+    Motor_t *motor = Motor_QuickMap[can_idx][id_idx];
+
+    // 4. 处理数据
+    if (motor != NULL) 
     {
-        /* 更新电机原始数据和处理后数据，并转换电机编码器值为角度值 */
-        temp_motor->MotorUpdate(&temp_motor->rawData, &temp_motor->treatedData, bufferRx->data);
-        MotorEcdtoAngle(temp_motor);
+        motor->online_cnt = 0; 
+        motor->MotorUpdate(&motor->rawData, &motor->treatedData, bufferRx->data);
+        MotorEcdtoAngle(motor);
     }
 }
 
-/**
- * @brief 获得电机结构体中的ID
- */
-uint16_t MotorReturnID(Motor_t motor)
-{
-    return motor.param.can_id;
-}
 
 /**
  * @brief  将treatedData.motor_output限幅后填入发送缓存区等待发送。

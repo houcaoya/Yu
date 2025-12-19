@@ -98,7 +98,6 @@ typedef struct
 
 void MotorInit(Motor_t *motor, uint16_t ecdOffset, motor_type type, uint16_t gearRatio, CanNumber canx, uint16_t id);
 void MotorRxCallback(CAN_Instance_t *canObject, CAN_RxBuffer_t *bufferRx);
-uint16_t MotorReturnID(Motor_t motor);
 void MotorFillData(Motor_t *motor, int32_t output);
 uint16_t MotorCanOutput(CAN_Instance_t can, int16_t IDforTxBuffer);
 
