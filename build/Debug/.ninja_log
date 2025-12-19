@@ -103,3 +103,5 @@
 4778	6547	7878558666093885	CMakeFiles/Yu.dir/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c.obj	388102e17c3a2592
 4742	6573	7878558665732293	CMakeFiles/Yu.dir/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c.obj	138fbbcf6fd73b53
 6574	7581	7878558684049969	Yu.elf	6b90cc17c73e0e26
+15	929	7878560254684600	CMakeFiles/Yu.dir/Cubot/Driver/Src/driver_usart.c.obj	f994968a7221d3bd
+931	1947	7878560263851733	Yu.elf	6b90cc17c73e0e26

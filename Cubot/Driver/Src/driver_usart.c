@@ -68,12 +68,12 @@ UART_Object uart6;
 
 UART_Object* Find_UART(UART_HandleTypeDef *huart)
 {
-	// if (huart==&huart1) return &uart1;
-	// else if (huart==&huart2) return &uart2;
-	// else if (huart==&huart3) return &uart3;
-	// else if (huart==&huart4) return &uart4;
-	if (huart==&huart5) return &uart5;
-	// else if (huart==&huart6) return &uart6;
+	if (huart==&huart1) return &uart1;
+	else if (huart==&huart2) return &uart2;
+	else if (huart==&huart3) return &uart3;
+	else if (huart==&huart4) return &uart4;
+	else if (huart==&huart5) return &uart5;
+	else if (huart==&huart6) return &uart6;
 	else return 0;
 }
 /**
