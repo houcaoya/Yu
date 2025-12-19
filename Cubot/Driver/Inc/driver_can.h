@@ -3,7 +3,6 @@
 
 #include "stm32h7xx_hal.h"
 #include "fdcan.h"
-#include "linux_list.h"
 #include "freertos.h"
 #include "queue.h"
 

@@ -81,7 +81,6 @@ typedef uint8_t (*Motor_DataUpdate)(RawData_t *raw, TreatedData_t *treated, uint
 typedef struct
 {
     int16_t online_cnt; //< 电机离线检测计数
-    list_t list;                     //< 链表指针，创建指向自己的初始链表，并通过注册函数拓展成循环链表
     RawData_t rawData;               //< 电机初始动态数据，工作中更新
     TreatedData_t treatedData;       //< 电机处理后的数据，工作中更新
     MotorParam_t param;              //< 电机参数，在初始化时设置
