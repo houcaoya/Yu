@@ -47,6 +47,7 @@ void Init_Task(void *argument)
     /* 创建控制任务用于处理控制逻辑 */
     xTaskCreate(Control_Task, "Control_Task", 256, NULL, osPriorityNormal, NULL);
 
+    Motor_DriverInit();
     /* 获取init任务的栈空间使用情况 */
     uxHighWaterMark_init = uxTaskGetStackHighWaterMark(NULL);
 

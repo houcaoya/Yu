@@ -50,10 +50,18 @@
 #include "rm_motor.h"
 #include "user_lib.h"
 
+// 定义两个CAN总线（CAN1/CAN2）上三种不同控制ID的发送缓冲区数组
+// 第一维表示CAN总线编号(0=CAN1, 1=CAN2)，第二维表示控制帧类型(共3种)
 static CAN_TxBuffer_t txBuffer[2][3];
 
+// 快速查找表，用于根据CAN总线和电机ID快速定位对应的Motor_t结构体
+// 支持最多12个电机ID (0x200-0x20B)
 static Motor_t *Motor_QuickMap[2][0x0C] = {NULL};
 
+/**
+ * @brief 初始化电机驱动模块的发送缓冲区
+ * @note 该函数在系统启动时调用一次，配置所有CAN发送缓冲区的基本参数
+ */
 void Motor_DriverInit(void)
 {
     // 定义三个标准控制ID: 0=0x1FF, 1=0x200, 2=0x2FF (顺序需与填充逻辑对应)
@@ -63,20 +71,18 @@ void Motor_DriverInit(void)
     {
         for (int j = 0; j < 3; j++) // 遍历 3 个控制帧
         {
-            txBuffer[i][j].txHeader.Identifier = std_ids[j];
-            txBuffer[i][j].txHeader.DataLength = FDCAN_DLC_BYTES_8;
-            txBuffer[i][j].txHeader.IdType     = FDCAN_STANDARD_ID;
-            txBuffer[i][j].txHeader.TxFrameType= FDCAN_DATA_FRAME;
-            txBuffer[i][j].txHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
-            txBuffer[i][j].txHeader.BitRateSwitch = FDCAN_BRS_OFF;
-            txBuffer[i][j].txHeader.FDFormat = FDCAN_CLASSIC_CAN;
-            txBuffer[i][j].txHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
-            txBuffer[i][j].txHeader.MessageMarker = 0;
+            txBuffer[i][j].txHeader.Identifier = std_ids[j];// 设置发送缓冲区的CAN标识符           
+            txBuffer[i][j].txHeader.DataLength = FDCAN_DLC_BYTES_8;// 设置数据长度为8字节（标准CAN帧）           
+            txBuffer[i][j].txHeader.IdType     = FDCAN_STANDARD_ID;// 使用标准ID格式          
+            txBuffer[i][j].txHeader.TxFrameType= FDCAN_DATA_FRAME;// 数据帧类型            
+            txBuffer[i][j].txHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;// 错误状态指示器设为活跃            
+            txBuffer[i][j].txHeader.BitRateSwitch = FDCAN_BRS_OFF;// 关闭比特率切换           
+            txBuffer[i][j].txHeader.FDFormat = FDCAN_CLASSIC_CAN;// 使用经典CAN格式（非FD模式）            
+            txBuffer[i][j].txHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS; // 不使用发送事件FIFO            
+            txBuffer[i][j].txHeader.MessageMarker = 0;// 消息标记设为0
         }
     }
 }
-
-
 
 /**
  * @brief 将电机编码器数据转换为角度值
@@ -104,7 +110,12 @@ static void MotorEcdtoAngle(Motor_t *motor)
 }
 
 /**
- * @brief  电机数据更新回调
+ * @brief 电机数据更新回调函数
+ * @param raw 指向原始数据结构体的指针
+ * @param treated 指向处理后数据结构体的指针
+ * @param data 接收到的CAN数据字节数组
+ * @return 总是返回0（保留用于未来扩展）
+ * @note 解析从CAN总线接收到的电机反馈数据包
  */
 static uint8_t CAN_update_data(RawData_t *raw, TreatedData_t *treated, uint8_t *data)
 {
@@ -120,15 +131,16 @@ static uint8_t CAN_update_data(RawData_t *raw, TreatedData_t *treated, uint8_t *
 /**
  * @brief 电机初始化，设置静态参数，包括编码器零位，电机类型，减速比和id
  *
- * @param motor 		所要初始化的电机
- * @param ecdOffset 	编码器零位
- * @param type 			电机类型
- * @param gearRatio 	减速比，目前只支持转子与输出轴之比为2:1和3:1的情况
- * @param canx 			使用的是CAN1还是CAN2
- * @param id 			CAN_ID
+ * @param motor         所要初始化的电机结构体指针
+ * @param ecdOffset     编码器零位偏移量
+ * @param type          电机类型枚举值
+ * @param gearRatio     减速比
+ * @param canx          使用的是CAN1还是CAN2
+ * @param id            CAN_ID（必须在0x200-0x20B范围内才能建立快速映射）
  */
 void MotorInit(Motor_t *motor, uint16_t ecdOffset, motor_type type, uint16_t gearRatio, CanNumber canx, uint16_t id)
 {
+    // 初始化电机参数
     motor->param.ecd_offset      = ecdOffset;
     motor->param.motor_type      = type;
     motor->param.can_id          = id;
@@ -164,6 +176,7 @@ void MotorInit(Motor_t *motor, uint16_t ecdOffset, motor_type type, uint16_t gea
 /**
  * @brief 电机CAN接收回调函数
  * @param canObject CAN实例对象指针，包含接收到的CAN数据
+ * @param bufferRx  接收缓冲区指针
  * @note 该函数用于处理电机相关的CAN接收数据，解析电机反馈信息并更新电机状态
  */
 void MotorRxCallback(CAN_Instance_t *canObject, CAN_RxBuffer_t *bufferRx)
@@ -185,13 +198,16 @@ void MotorRxCallback(CAN_Instance_t *canObject, CAN_RxBuffer_t *bufferRx)
     {
         motor->online_cnt = 0; 
         motor->MotorUpdate(&motor->rawData, &motor->treatedData, bufferRx->data);
-        MotorEcdtoAngle(motor);
+        MotorEcdtoAngle(motor);// 将编码器值转换为角度值
     }
 }
 
 
 /**
- * @brief  将treatedData.motor_output限幅后填入发送缓存区等待发送。
+ * @brief 将treatedData.motor_output限幅后填入发送缓存区等待发送
+ * @param motor  指向电机结构体的指针
+ * @param output 待发送的控制输出值（通常是电流或电压）
+ * @note 该函数不会立即发送数据，只是填充发送缓冲区，需要配合MotorCanOutput使用
  */
 void MotorFillData(Motor_t *motor, int32_t output)
 {
@@ -204,8 +220,8 @@ void MotorFillData(Motor_t *motor, int32_t output)
     uint16_t id     = motor->param.can_id;
     int16_t val     = (int16_t)motor->treatedData.motor_output;
     
-    int buf_idx = -1; // 0:1FF, 1:200, 2:2FF
-    int offset  = 0;
+    int buf_idx = -1; //  缓冲区索引: 0=0x1FF, 1=0x200, 2=0x2FF
+    int offset  = 0;  //  在缓冲区中的字节偏移
 
     // 3. 计算缓冲区索引和字节偏移
     if (id >= 0x201 && id <= 0x204) {
@@ -229,11 +245,15 @@ void MotorFillData(Motor_t *motor, int32_t output)
 }
 
 /**
- * @brief  将特定ID的CAN_TxBuffer_t发送出去。
+ * @brief 将特定ID的CAN_TxBuffer_t发送出去
+ * @param can             CAN实例对象
+ * @param IDforTxBuffer   要发送的控制帧ID（0x1FF/0x200/0x2FF之一）
+ * @return                0表示成功，1表示ID无效
+ * @note 需要先调用MotorFillData填充数据后再调用此函数发送
  */
 uint16_t MotorCanOutput(CAN_Instance_t can, int16_t IDforTxBuffer)
 {
-    uint8_t can_idx = (can.canHandler == &hfdcan2) ? 1 : 0;
+    uint8_t can_idx = (can.canHandler == &hfdcan2) ? 1 : 0;// 获取CAN总线索引
     int buf_idx = -1;
 
     // 匹配 Tx Buffer 索引 (与 MotorFillData 中的逻辑对应)
@@ -244,7 +264,5 @@ uint16_t MotorCanOutput(CAN_Instance_t can, int16_t IDforTxBuffer)
         default: return 1; // 错误 ID
     }
 
-    // 直接发送，无需多余判断
-    // 注意：确保 driver_can.c 的 CAN_Send 能够处理我们构造的 txBuffer
     return CAN_Send(&can, &txBuffer[can_idx][buf_idx]);
 }

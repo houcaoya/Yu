@@ -69,12 +69,6 @@ typedef struct
     int16_t current_limit;    //< 电调能承受的最大电流
 } MotorParam_t;
 
-/**
- * @brief     将电机的待发送数据填入CAN发送缓存区
- * @param[in] motorData     电机动态数据结构体，只需要发送，不修改数据，不需要传入指针、
- * @param[in] id            电机标识符ID
- */
-typedef uint8_t (*CAN_FillMotorData)(CAN_Instance_t can, TreatedData_t motorData, uint16_t id); //< 电机发送回调
 
 /**
  * @brief  筛选CAN数据，并更新电机动态数据的回调函数
@@ -92,10 +86,9 @@ typedef struct
     TreatedData_t treatedData;       //< 电机处理后的数据，工作中更新
     MotorParam_t param;              //< 电机参数，在初始化时设置
     Motor_DataUpdate MotorUpdate;    //< 更新电机运行数据的函数指针
-    CAN_FillMotorData FillMotorData; //< 对不同发送ID的CAN发送缓存区填入待发送数据的函数指针
 } Motor_t;
 
-
+void Motor_DriverInit(void);
 void MotorInit(Motor_t *motor, uint16_t ecdOffset, motor_type type, uint16_t gearRatio, CanNumber canx, uint16_t id);
 void MotorRxCallback(CAN_Instance_t *canObject, CAN_RxBuffer_t *bufferRx);
 void MotorFillData(Motor_t *motor, int32_t output);
