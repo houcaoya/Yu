@@ -58,13 +58,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     Cubot/Driver/Src/driver_usart.c
     Cubot/Driver/Src/driver_can.c
+    Cubot/Device/Src/rm_motor.c
+    Cubot/Algorithm/Src/pid.c
     Cubot/Task/Src/can_task.c
     Cubot/Task/Src/init_task.c
     Cubot/Task/Src/uart_task.c
     Cubot/Task/Src/control_task.c
     Cubot/Task/Src/referee_task.c
-    Cubot/Device/Src/rm_motor.c
-    Cubot/Algorithm/Src/pid.c
+    Cubot/Task/Src/shoot_task.c
     
 )
 

@@ -40,13 +40,13 @@
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 87,
+				"line" : 88,
 				"parent" : 0
 			},
 			{
 				"command" : 3,
 				"file" : 0,
-				"line" : 72,
+				"line" : 73,
 				"parent" : 0
 			},
 			{
@@ -203,7 +203,8 @@
 				53,
 				54,
 				55,
-				56
+				56,
+				57
 			]
 		},
 		{
@@ -286,7 +287,7 @@
 			"language" : "ASM",
 			"sourceIndexes" : 
 			[
-				57
+				58
 			]
 		}
 	],
@@ -371,14 +372,15 @@
 				53,
 				54,
 				55,
-				56
+				56,
+				57
 			]
 		},
 		{
 			"name" : "",
 			"sourceIndexes" : 
 			[
-				57
+				58
 			]
 		}
 	],
@@ -394,6 +396,18 @@
 			"backtrace" : 5,
 			"compileGroupIndex" : 0,
 			"path" : "Cubot/Driver/Src/driver_can.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 5,
+			"compileGroupIndex" : 0,
+			"path" : "Cubot/Device/Src/rm_motor.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 5,
+			"compileGroupIndex" : 0,
+			"path" : "Cubot/Algorithm/Src/pid.c",
 			"sourceGroupIndex" : 0
 		},
 		{
@@ -429,13 +443,7 @@
 		{
 			"backtrace" : 5,
 			"compileGroupIndex" : 0,
-			"path" : "Cubot/Device/Src/rm_motor.c",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 5,
-			"compileGroupIndex" : 0,
-			"path" : "Cubot/Algorithm/Src/pid.c",
+			"path" : "Cubot/Task/Src/shoot_task.c",
 			"sourceGroupIndex" : 0
 		},
 		{
