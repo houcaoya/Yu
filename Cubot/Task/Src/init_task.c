@@ -28,10 +28,10 @@ void Init_Task(void *argument)
     /* 避免编译器警告，标记参数为未使用 */
     (void)argument;
 
-    vTaskSuspendAll();
-    /* 初始化UART5硬件并注册回调函数 */
-    // UARTx_Init(&uart5, uart5_callback);
+    UARTx_Init(&uart1);
     UARTx_Init(&uart3);
+    UARTx_Init(&uart4);
+    UARTx_Init(&uart5);
     /* 初始化CAN硬件并打开CAN设备 */
     CANx_Init(&hfdcan1, CAN1_rxCallBack);
 	CANx_Init(&hfdcan2, CAN2_rxCallBack);
