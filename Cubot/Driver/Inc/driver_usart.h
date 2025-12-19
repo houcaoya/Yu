@@ -46,17 +46,17 @@ typedef struct
     UART_RxBuffer_t uart_RxBuffer[2];
 	uint8_t recv_buff_size;
 	uint8_t is_first_idle;
-    QueueHandle_t xQueueUart;
     StreamBufferHandle_t stream_buffer;
 	uint8_t activeBuffer;
 } UART_Object;
 
+
 /**
  * @brief   串口初始化，将句柄和接收回调拷贝至串口结构体
- * @param[in]  h_usart		        串口句柄
+ * @param[in]  uart		        串口结构体
  * @param[in]  rxIdleCallback		接收回调函数
  */
-void UARTx_Init(UART_HandleTypeDef *h_usart, UART_RxIdleCallback rxIdleCallback);
+void UARTx_Init(UART_Object *uart, UART_RxIdleCallback rxIdleCallback);
 
 /**
  * @brief  串口设备中断函数，执行中断DMA操作，调用串口用户回调函数，需要将其添加到stm32h7xx_it.c中
@@ -64,7 +64,7 @@ void UARTx_Init(UART_HandleTypeDef *h_usart, UART_RxIdleCallback rxIdleCallback)
  * @param[in]  rx_buffer		发送缓存区, 用户定义。注意！ 此处的rxBuffer应该与 UART_Open中调用rxBuffer一致
  * @retval
  */
-void UART_Idle_Handler(UART_HandleTypeDef *huart);
+void UART_Idle_Handler(UART_Object *uart);
 
 /**
  * @brief  串口管理器结构体参数已经预先填写好的串口设备初始化

@@ -59,23 +59,8 @@
 #include "usart.h"
 
 
-UART_Object uart1;
-UART_Object uart2;
-UART_Object uart3;
-UART_Object uart4;
-UART_Object uart5;
-UART_Object uart6;
+UART_Object uart1, uart2, uart3, uart4, uart5, uart6;
 
-UART_Object* Find_UART(UART_HandleTypeDef *huart)
-{
-	if (huart==&huart1) return &uart1;
-	else if (huart==&huart2) return &uart2;
-	else if (huart==&huart3) return &uart3;
-	else if (huart==&huart4) return &uart4;
-	else if (huart==&huart5) return &uart5;
-	else if (huart==&huart6) return &uart6;
-	else return 0;
-}
 /**
  * @brief 初始化UART接口
  * @param handle UART句柄指针，用于配置和控制UART硬件
@@ -85,12 +70,8 @@ UART_Object* Find_UART(UART_HandleTypeDef *huart)
  * 该函数用于初始化UART接口，包括设置句柄、配置接收空闲中断以及启动DMA接收。
  * 如果提供了接收空闲回调函数，则会启用UART接收空闲中断并启动DMA接收功能。
  */
-void UARTx_Init(UART_HandleTypeDef* handle, UART_RxIdleCallback rxIdleCallback)
+void UARTx_Init(UART_Object* uart, UART_RxIdleCallback rxIdleCallback)
 {
-	/* 查找并获取UART对象 */
-	UART_Object *uart;
-	uart = Find_UART(handle);
-	uart->Handle = handle;
 	uart->is_first_idle = 0;
 
 	uart->stream_buffer = xStreamBufferCreate(648, 1);
@@ -113,12 +94,9 @@ void UARTx_Init(UART_HandleTypeDef* handle, UART_RxIdleCallback rxIdleCallback)
  *       清除相关标志位，调用用户回调函数处理接收到的数据，
  *       然后重新启动DMA接收
  */
-void UART_Idle_Handler(UART_HandleTypeDef *huart)
+void UART_Idle_Handler(UART_Object *uart)
 {
-	// 查找对应的UART对象
-	UART_Object *uart;
-	uart = Find_UART(huart);
-	
+
 	// 检查空闲标志是否置位且接收回调函数不为空
 	if ((__HAL_UART_GET_FLAG(uart->Handle, UART_FLAG_IDLE) != RESET) && (uart->RxIdleCallback!=NULL))
     {
