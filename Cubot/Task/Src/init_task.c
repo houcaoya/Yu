@@ -29,7 +29,7 @@ void Init_Task(void *argument)
 
     /* 初始化UART5硬件并注册回调函数 */
     // UARTx_Init(&uart5, uart5_callback);
-    // UARTx_Init(&uart3, Refereedata_process);
+    UARTx_Init(&uart3);
     /* 初始化CAN硬件并打开CAN设备 */
     CANx_Init(&hfdcan1, CAN1_rxCallBack);
 	CANx_Init(&hfdcan2, CAN2_rxCallBack);

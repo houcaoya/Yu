@@ -70,22 +70,16 @@ UART_Object uart1, uart2, uart3, uart4, uart5, uart6;
  * 该函数用于初始化UART接口，包括设置句柄、配置接收空闲中断以及启动DMA接收。
  * 如果提供了接收空闲回调函数，则会启用UART接收空闲中断并启动DMA接收功能。
  */
-void UARTx_Init(UART_Object* uart, UART_RxIdleCallback rxIdleCallback)
+void UARTx_Init(UART_Object* uart)
 {
 	uart->is_first_idle = 0;
-
 	uart->stream_buffer = xStreamBufferCreate(648, 1);
-	/* 如果提供了接收空闲回调函数，则配置相关中断和DMA接收功能 */
-	if (rxIdleCallback!=NULL) 
-	{
-		uart->RxIdleCallback = rxIdleCallback;
-		/* 清除UART接收空闲标志位 */
-		__HAL_UART_CLEAR_IDLEFLAG(uart->Handle);
-		/* 使能UART接收空闲中断 */
-		__HAL_UART_ENABLE_IT(uart->Handle, UART_IT_IDLE); 
-		/* 启动UART DMA接收，接收缓冲区大小为200字节 */
-		HAL_UART_Receive_DMA(uart->Handle, uart->uart_RxBuffer[uart->activeBuffer].Data,200);		
-    }
+	/* 清除UART接收空闲标志位 */
+	__HAL_UART_CLEAR_IDLEFLAG(uart->Handle);
+	/* 使能UART接收空闲中断 */
+	__HAL_UART_ENABLE_IT(uart->Handle, UART_IT_IDLE); 
+	/* 启动UART DMA接收，接收缓冲区大小为200字节 */
+	HAL_UART_Receive_DMA(uart->Handle, uart->uart_RxBuffer[uart->activeBuffer].Data,200);		
 }
 
 /**
@@ -116,16 +110,15 @@ void UART_Idle_Handler(UART_Object *uart)
 			
 			uint16_t received_len = sizeof(uart->uart_RxBuffer[uart->activeBuffer].Data) - __HAL_DMA_GET_COUNTER(uart->Handle->hdmarx);
 			// 将接收到的数据从DMA缓冲区发送到流缓冲区中
-			if(uart->stream_buffer != NULL)
+			if(uart->stream_buffer != NULL &&uart->stream_buffer != NULL)
 			{
 				BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
 				xStreamBufferSendFromISR(uart->stream_buffer, &uart->uart_RxBuffer[uart->activeBuffer].Data, received_len, &pxHigherPriorityTaskWoken);
-				
+				uart->activeBuffer = 1 - uart->activeBuffer;
 				// 根据任务优先级情况决定是否进行任务切换
 				portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 			}
 		}
-		HAL_UART_DMAResume(uart->Handle);
 		HAL_UART_Receive_DMA(uart->Handle, uart->uart_RxBuffer[uart->activeBuffer].Data,200);      
     }
 }

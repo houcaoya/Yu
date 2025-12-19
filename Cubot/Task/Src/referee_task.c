@@ -392,16 +392,14 @@ void Referee_Task(void *argument)
 {
 	(void)argument;
 	size_t receivedBytes;
-	
+	uint8_t task_local_buffer[200];
 	while(1)
     {
-		receivedBytes = xStreamBufferReceive(uart3.stream_buffer, uart3.uart_RxBuffer[uart3.activeBuffer].Data, sizeof(uart3.uart_RxBuffer[uart3.activeBuffer].Data), portMAX_DELAY);
+		receivedBytes = xStreamBufferReceive(uart3.stream_buffer, task_local_buffer, sizeof(task_local_buffer), portMAX_DELAY);
         
 		if(receivedBytes > 0)
 		{
-			uint8_t processingBuffer = uart3.activeBuffer;
-			uart3.activeBuffer = (uart3.activeBuffer + 1) % 2;
-			Refereedata_process(uart3.uart_RxBuffer[processingBuffer].Data, receivedBytes);
+			Refereedata_process(task_local_buffer, receivedBytes);
 		}
 
         uxHighWaterMark_referee = uxTaskGetStackHighWaterMark(NULL);
