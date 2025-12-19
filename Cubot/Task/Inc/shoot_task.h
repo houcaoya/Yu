@@ -93,6 +93,7 @@ void Shoot_Task(void *argument);
 void Chassis_Task(void *argument);
 void Holder_Task(void *argument);
 void Print_Task(void *argument);
+void Brain_Task(void *argument);
 void ShootInit(Shoot_t *shoot);
 #endif
 

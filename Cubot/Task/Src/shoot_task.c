@@ -16,7 +16,10 @@ void Print_Task(void *argument)
 {
 	(void)argument;
 }
-
+void Brain_Task(void *argument)
+{
+	(void)argument;
+}
 Shoot_t heroShoot=
 {
 	 .shootCount.loader.auto_time = 1000,

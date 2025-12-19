@@ -41,6 +41,8 @@ void Init_Task(void *argument)
     BasePID_Init_All();
     /* 创建UART任务用于处理串口通信 */
     xTaskCreate(Referee_Task, "Referee_Task", 512, NULL, osPriorityNormal-1, NULL);
+    xTaskCreate(Brian_Task, "Brian_Task", 512, NULL, osPriorityNormal-1, NULL);
+    xTaskCreate(Print_Task,"Print_Task",256,NULL,osPriorityNormal-2,NULL);
     /* 创建CAN任务用于处理CAN通信 */
     xTaskCreate(CanTask_Process, "CanTask_Process", 256, &can1, osPriorityNormal+1, NULL);
     xTaskCreate(CanTask_Process, "CanTask_Process", 256, &can2, osPriorityNormal+1, NULL);
@@ -49,7 +51,6 @@ void Init_Task(void *argument)
     xTaskCreate(Chassis_Task,"Chassis_Task",256,NULL,osPriorityNormal,NULL);
     xTaskCreate(Holder_Task,"Holder_Task",512,NULL,osPriorityNormal,NULL);
 
-    xTaskCreate(Print_Task,"Print_Task",256,NULL,osPriorityNormal-2,NULL);
     /* 创建电机驱动任务 */
     Motor_DriverInit();
 
