@@ -1,6 +1,10 @@
 #include "referee_task.h"
+#include "driver_usart.h"
 #include "string.h"
 #include <stdint.h>
+
+
+#if OPEN_REFEREE
 
 Referee_t referee2024;
 
@@ -8,25 +12,7 @@ uint8_t ref_packge[50][50];  //最多一次收50个包
 
 uint8_t meta_data[BSP_USART3_DMA_RX_BUF_LEN];
 uint8_t temp[15];
-
-#if OPEN_REFEREE
-UBaseType_t uxHighWaterMark_uart;
-void Referee_Task(void *argument)
-{
-	(void)argument;
-	size_t receivedBytes;
-	while(1)
-    {
-		receivedBytes = xStreamBufferReceive(uart3.stream_buffer, uart3.uart_RxBuffer[uart3.activeBuffer].Data, sizeof(uart3.uart_RxBuffer[uart3.activeBuffer].Data), portMAX_DELAY);
-        if(receivedBytes > 0)
-        uxHighWaterMark_uart = uxTaskGetStackHighWaterMark(NULL);
-    }
-	// Refereedata_process(recBuffer, len);
-
-
-}
-
-uint8_t Refereedata_process(uint8_t *data, uint16_t len) 
+static uint8_t Refereedata_process(uint8_t *data, uint16_t len) 
 {
     referee2024.online_cnt = 0;
     static uint32_t Verify_CRC8_OK;
@@ -399,4 +385,25 @@ void Append_CRC16_Check_Sum(uint8_t * pchMessage,uint32_t dwLength)
 	wCRC = Get_CRC16_Check_Sum ( (uint8_t *)pchMessage, dwLength-2, CRC_INIT );
 	pchMessage[dwLength-2] = (uint8_t)(wCRC & 0x00ff);
 	pchMessage[dwLength-1] = (uint8_t)((wCRC >> 8)& 0x00ff);
+}
+
+UBaseType_t uxHighWaterMark_referee;
+void Referee_Task(void *argument)
+{
+	(void)argument;
+	size_t receivedBytes;
+	
+	while(1)
+    {
+		receivedBytes = xStreamBufferReceive(uart3.stream_buffer, uart3.uart_RxBuffer[uart3.activeBuffer].Data, sizeof(uart3.uart_RxBuffer[uart3.activeBuffer].Data), portMAX_DELAY);
+        
+		if(receivedBytes > 0)
+		{
+			uint8_t processingBuffer = uart3.activeBuffer;
+			uart3.activeBuffer = (uart3.activeBuffer + 1) % 2;
+			Refereedata_process(uart3.uart_RxBuffer[processingBuffer].Data, receivedBytes);
+		}
+
+        uxHighWaterMark_referee = uxTaskGetStackHighWaterMark(NULL);
+    }
 }

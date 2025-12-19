@@ -266,9 +266,7 @@ typedef struct
 	char UI_sentryHP_string[30];
 } Referee_t;
 #if (OPEN_REFEREE == 1)
-uint8_t Refereedata_process(uint8_t *recBuffer, uint16_t len);
 void _Data_Diapcak(uint8_t *pdata);
-// uint8_t Referee_callback(uint8_t *recBuffer, uint16_t len);
 #endif
 void Referee_Task(void *argument);
 extern Referee_t referee2024;
