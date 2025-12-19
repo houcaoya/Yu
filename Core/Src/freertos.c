@@ -99,7 +99,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
-  xTaskCreate(Init_Task, "Init_Task", 256, NULL, osPriorityNormal, NULL);
+  xTaskCreate(Init_Task, "Init_Task", 256, NULL, osPriorityISR, NULL);
   /* USER CODE END RTOS_EVENTS */
 
 }

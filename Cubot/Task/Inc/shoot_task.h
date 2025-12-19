@@ -89,7 +89,10 @@ typedef struct
 
 extern Shoot_t heroShoot;
 
-void Shoot_Task(void);
+void Shoot_Task(void *argument);
+void Chassis_Task(void *argument);
+void Holder_Task(void *argument);
+void Print_Task(void *argument);
 void ShootInit(Shoot_t *shoot);
 #endif
 

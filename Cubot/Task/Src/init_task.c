@@ -5,6 +5,7 @@
 #include "driver_can.h"
 #include "referee_task.h"
 #include "rm_motor.h"
+#include "shoot_task.h"
 #include "uart_task.h"
 #include "can_task.h"
 #include "control_task.h"
@@ -27,6 +28,7 @@ void Init_Task(void *argument)
     /* 避免编译器警告，标记参数为未使用 */
     (void)argument;
 
+    vTaskSuspendAll();
     /* 初始化UART5硬件并注册回调函数 */
     // UARTx_Init(&uart5, uart5_callback);
     UARTx_Init(&uart3);
@@ -40,12 +42,14 @@ void Init_Task(void *argument)
     /* 创建UART任务用于处理串口通信 */
     xTaskCreate(Referee_Task, "Referee_Task", 512, NULL, osPriorityNormal-1, NULL);
     /* 创建CAN任务用于处理CAN通信 */
-    xTaskCreate(CanTask_Process, "CanTask_Process", 256, &can1, osPriorityNormal, NULL);
-    xTaskCreate(CanTask_Process, "CanTask_Process", 256, &can2, osPriorityNormal, NULL);
+    xTaskCreate(CanTask_Process, "CanTask_Process", 256, &can1, osPriorityNormal+1, NULL);
+    xTaskCreate(CanTask_Process, "CanTask_Process", 256, &can2, osPriorityNormal+1, NULL);
 
-    /* 创建控制任务用于处理控制逻辑 */
-    xTaskCreate(Control_Task, "Control_Task", 256, NULL, osPriorityNormal, NULL);
+    xTaskCreate(Shoot_Task,"Shoot_Task",256,NULL,osPriorityNormal,NULL);
+    xTaskCreate(Chassis_Task,"Chassis_Task",256,NULL,osPriorityNormal,NULL);
+    xTaskCreate(Holder_Task,"Holder_Task",512,NULL,osPriorityNormal,NULL);
 
+    xTaskCreate(Print_Task,"Print_Task",256,NULL,osPriorityNormal-2,NULL);
     /* 创建电机驱动任务 */
     Motor_DriverInit();
 

@@ -2,6 +2,21 @@
 #include "user_lib.h"
 #include "referee_task.h"
 
+void Chassis_Task(void *argument)
+{
+	(void)argument;
+}
+
+void Holder_Task(void *argument)
+{
+	(void)argument;
+}
+
+void Print_Task(void *argument)
+{
+	(void)argument;
+}
+
 Shoot_t heroShoot=
 {
 	 .shootCount.loader.auto_time = 1000,
@@ -25,7 +40,7 @@ void ShootInit(Shoot_t *shoot)
     MotorInit(&shoot->booster.top.m3508   , 0, Motor3508, 1, CAN1, 0x201);
 	MotorInit(&shoot->booster.left.m3508  , 0, Motor3508, 1, CAN1, 0x202);
 	MotorInit(&shoot->booster.right.m3508 , 0, Motor3508, 1, CAN1, 0x203);
-	MotorInit(&shoot->loader.m3508        , 0, Motor3508, 1, CAN1, 0x205);
+	MotorInit(&shoot->loader.m3508        , 0, Motor3508, 1, CAN1, 0x204);	
 }
 
 /**
@@ -134,6 +149,7 @@ void ShootInit(Shoot_t *shoot)
  */
 static void GetLoadData(Shoot_t *shoot)
 {
+	taskENTER_CRITICAL();
 	shoot->loader.angle = shoot->loader.m3508.treatedData.angle;
 	
 	if((shoot->loader.angle < -100) && (shoot->loader.last_angle > 100))
@@ -154,15 +170,8 @@ static void GetLoadData(Shoot_t *shoot)
 	{
 		shoot->loader.target_angle = shoot->loader.axis_angle;
 		shoot->loader.axis_total_angle = 0;
-	}
-	
-	/*記錄撥彈時間*/
-	if(shoot->shootFlag.load_start == 1)
-		shoot->shootCount.loader.load_time ++;
-	else 
-		shoot->shootCount.loader.load_time = 0;
-	
-		
+	}	
+	taskEXIT_CRITICAL(); 
 }
 
 /**
@@ -172,6 +181,7 @@ static void GetLoadData(Shoot_t *shoot)
  */
 static void JamJudge(Shoot_t *shoot)
 {
+	taskENTER_CRITICAL();
 	if((shoot->loader.m3508.treatedData.motor_output) <= -16000 && ABS(shoot->loader.m3508.rawData.speed_rpm < 20))//&& ABS(shoot->loader.m3508.rawData.speed_rpm < 20)
 		shoot->shootCount.loader.jammed_time++;
 	if((shoot->shootCount.loader.jammed_time > shoot->shootCount.loader.jammed_judge_time))
@@ -191,6 +201,7 @@ static void JamJudge(Shoot_t *shoot)
 			shoot->shootCount.loader.load_turnback_time = 0;
 		}
 	}
+	taskEXIT_CRITICAL(); 
 }
 
 /**
@@ -199,20 +210,13 @@ static void JamJudge(Shoot_t *shoot)
  * @param shoot
  */
 static void ShootGetData(Shoot_t *shoot)
-{	
-	shoot->booster.top.target_speed_config   = (shoot->booster.speed_top);
-	shoot->booster.left.target_speed_config  = -(shoot->booster.speed_left);
-	shoot->booster.right.target_speed_config = shoot->booster.speed_right;
-	
-	GetLoadData(shoot);
-	
+{
 	if(HAL_GPIO_ReadPin(SW_GPIO_Port, SW_Pin) == GPIO_PIN_RESET )
 		shoot->shootFlag.shoot_ready = 1;
 	else
 		shoot->shootFlag.shoot_ready = 0;
-	
 	JamJudge(shoot);
-		
+	GetLoadData(shoot);	
 }
 
 /**
@@ -279,9 +283,15 @@ static void ShootOutputCtrl(Shoot_t *shoot)
 	MotorFillData(&shoot->booster.right.m3508 , shoot->booster.right.m3508.treatedData.motor_output);
 	MotorFillData(&shoot->loader.m3508 		  , shoot->loader.m3508.treatedData.motor_output);
 }
-void Shoot_Task(void)
+
+UBaseType_t uxHighWaterMark_shoot;
+void Shoot_Task(void *argument)
 {
+    (void)argument;
+
 #if(SHOOT_ENABLE == 1)
+	while(1)
+	{
 		// if (rc_Ctrl.is_online == 1)
 		// 	Loadcontrol(&heroShoot);
 		// else
@@ -294,5 +304,12 @@ void Shoot_Task(void)
 		ShootGetData(&heroShoot);
 		// ShootControl(&heroShoot,&rc_Ctrl);
 		ShootOutputCtrl(&heroShoot);
+
+		vTaskDelay(1);
+
+		#ifdef DEBUG
+    	uxHighWaterMark_shoot = uxTaskGetStackHighWaterMark(NULL);
+    	#endif
+	}
 #endif	
 }
