@@ -79,4 +79,5 @@ void BasePID_Init(SinglePID_t *single_pid,
 					float iPartDetach_lower, float iPartDetach_upper,
 					float OutputLimit);
 void DualPID_Init(DualPID_t *dual_pid, SinglePID_t *shell_single_pid, SinglePID_t *core_single_pid);
+
 #endif

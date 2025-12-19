@@ -15,14 +15,13 @@ void Control_Task(void *argument) {
     (void) argument;
     TickType_t xLastWakeTime  = xTaskGetTickCount();
     while(1) {
-        // 执行PID控制算法，计算电机输出值
-        motor3508.treatedData.motor_output = One_Pid_Ctrl(500, motor3508.rawData.speed_rpm,&speedPID);
-        
-        // 填充电机控制数据
-        MotorFillData(&motor3508, motor3508.treatedData.motor_output);
-        
+
         // 通过CAN总线输出电机控制指令
         MotorCanOutput(can1, 0x200);
+        MotorCanOutput(can1, 0x1FF);
+        MotorCanOutput(can2, 0x200);
+        MotorCanOutput(can2, 0x1FF);
+
         
         // 任务延时，确保1ms周期执行
         vTaskDelayUntil(&xLastWakeTime , pdMS_TO_TICKS(1));

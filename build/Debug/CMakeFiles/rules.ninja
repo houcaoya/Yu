@@ -35,7 +35,7 @@ rule C_COMPILER__Yu_unscanned_Debug
 # Rule for linking C executable.
 
 rule C_EXECUTABLE_LINKER__Yu_Debug
-  command = C:\WINDOWS\system32\cmd.exe /C "$PRE_LINK && C:\Users\25236\AppData\Local\stm32cube\bundles\gnu-tools-for-stm32\13.3.1+st.9\bin\arm-none-eabi-gcc.exe $FLAGS -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard  -T "D:/RM/Yu/STM32H750VBTx_FLASH.ld" --specs=nano.specs -Wl,-Map=Yu.map -Wl,--gc-sections -Wl,--start-group -lc -lm -Wl,--end-group -Wl,--print-memory-usage $LINK_FLAGS $in -o $TARGET_FILE $LINK_PATH $LINK_LIBRARIES && $POST_BUILD"
+  command = C:\WINDOWS\system32\cmd.exe /C "$PRE_LINK && C:\Users\25236\AppData\Local\stm32cube\bundles\gnu-tools-for-stm32\13.3.1+st.9\bin\arm-none-eabi-gcc.exe $FLAGS -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard  -T "D:/RM/YU/STM32H750VBTx_FLASH.ld" --specs=nano.specs -Wl,-Map=Yu.map -Wl,--gc-sections -Wl,--start-group -lc -lm -Wl,--end-group -Wl,--print-memory-usage $LINK_FLAGS $in -o $TARGET_FILE $LINK_PATH $LINK_LIBRARIES && $POST_BUILD"
   description = Linking C executable $TARGET_FILE
   restat = $RESTAT
 
@@ -52,7 +52,7 @@ rule CUSTOM_COMMAND
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = C:\Users\25236\AppData\Local\stm32cube\bundles\cmake\4.0.1+st.3\bin\cmake.exe --regenerate-during-build -SD:\RM\Yu -BD:\RM\Yu\build\Debug
+  command = C:\Users\25236\AppData\Local\stm32cube\bundles\cmake\4.0.1+st.3\bin\cmake.exe --regenerate-during-build -SD:\RM\YU -BD:\RM\YU\build\Debug
   description = Re-running CMake...
   generator = 1
 

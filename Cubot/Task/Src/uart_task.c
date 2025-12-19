@@ -40,6 +40,7 @@ void Uart_Task(void *argument)
     /* 避免编译器警告，标记参数未被使用 */
     (void)argument;
     size_t receivedBytes;
+    
     /* 初始化UART5的DMA发送功能 */
     HAL_UART_Transmit_DMA(&huart5, uart5_txBuffer, sizeof(uart5_txBuffer));
     

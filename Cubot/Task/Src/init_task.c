@@ -9,18 +9,11 @@
 #include "control_task.h"
 
 UBaseType_t uxHighWaterMark_init;
-Motor_t motor3508;
-SinglePID_t speedPID;
-
 
 static void BasePID_Init_All(void)
 {
-    BasePID_Init(&speedPID,10, 0, 0, 16000, 0, 0, 
-                0,  0, 
-                1600);
-
+    /* 初始化PID控制参数 */
 }
-
 /**
  * @brief 初始化任务函数
  * @param argument 任务参数指针，本函数中未使用
@@ -33,9 +26,6 @@ void Init_Task(void *argument)
     /* 避免编译器警告，标记参数为未使用 */
     (void)argument;
 
-    /* 进入临界区，保护初始化过程 */
-    taskENTER_CRITICAL();
-
     /* 初始化UART5硬件并注册回调函数 */
     UARTx_Init(&huart5, uart5_callback);
 
@@ -45,20 +35,15 @@ void Init_Task(void *argument)
 	CAN_Open(&can1);
 	CAN_Open(&can2);
 
-    /* 初始化3508电机 */
-    MotorInit(&motor3508, 0, Motor3508, 1, CAN1, 0x201);
-
     BasePID_Init_All();
     /* 创建UART任务用于处理串口通信 */
     xTaskCreate(Uart_Task, "Uart_Task", 512, NULL, osPriorityNormal, NULL);
     /* 创建CAN任务用于处理CAN通信 */
-    xTaskCreate(Can_Task, "Can1_Task", 256, &can1, osPriorityNormal, NULL);
-    xTaskCreate(Can_Task, "Can2_Task", 256, &can2, osPriorityNormal, NULL);
+    xTaskCreate(CanTask_Process, "CanTask_Process", 256, &can1, osPriorityNormal, NULL);
+    xTaskCreate(CanTask_Process, "CanTask_Process", 256, &can2, osPriorityNormal, NULL);
 
+    /* 创建控制任务用于处理控制逻辑 */
     xTaskCreate(Control_Task, "Control_Task", 256, NULL, osPriorityNormal, NULL);
-
-    /* 退出临界区 */
-    taskEXIT_CRITICAL();
 
     /* 获取init任务的栈空间使用情况 */
     uxHighWaterMark_init = uxTaskGetStackHighWaterMark(NULL);
@@ -66,4 +51,3 @@ void Init_Task(void *argument)
     /* 删除初始化任务自身，释放资源 */
     vTaskDelete(NULL);
 }
-
