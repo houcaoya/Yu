@@ -12,22 +12,18 @@ UBaseType_t uxHighWaterMark_can;
 void CanTask_Process(void *argument)
 {
     CAN_Instance_t *can = argument;
-    
+    CAN_RxBuffer_t task_local_buffer;
     /* 任务主循环 */
     while(1)
     {
         /* 等待并从CAN接收队列中获取数据，获取成功后进行相应处理 */
-        if (xQueueReceive(can->xQueueCan, &can->rxBuffer[can->activeBuffer].data, portMAX_DELAY) == pdTRUE)
-        {
-            /* 立即切换到另一个缓冲区用于下一次接收 */
-            uint8_t processingBuffer = can->activeBuffer;
-            can->activeBuffer = (can->activeBuffer + 1) % 2;
-            
+        if (xQueueReceive(can->xQueueCan, &task_local_buffer, portMAX_DELAY) == pdTRUE)
+        {   
             /* 根据CAN实例类型调用对应的电机接收回调函数 */
             if(can == &can1)
-                MotorRxCallback(&can1, &can->rxBuffer[processingBuffer]);
+                MotorRxCallback(&can1, &task_local_buffer);
             else if(can == &can2)
-                MotorRxCallback(&can2, &can->rxBuffer[processingBuffer]);
+                MotorRxCallback(&can2, &task_local_buffer);
         }
         
         /* 获取任务堆栈使用情况，用于监控任务堆栈使用峰值 */

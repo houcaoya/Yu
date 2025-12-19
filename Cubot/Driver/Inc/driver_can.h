@@ -39,7 +39,7 @@ typedef struct
 typedef struct _CAN_Instance_t {
     FDCAN_HandleTypeDef *canHandler;                    // CAN句柄
     list_t devicesList;                                 // CAN设备链表
-    CAN_RxBuffer_t rxBuffer[2];                         // 接收缓存区结构体
+    CAN_RxBuffer_t rxBuffer;                         // 接收缓存区结构体
     CAN_TxBuffer_t txBuffer;                            // 发送缓存区结构体
     uint8_t (*RxCallBackCAN)(struct _CAN_Instance_t *); // 接收回调函数
     QueueHandle_t xQueueCan;                            // CAN接收队列

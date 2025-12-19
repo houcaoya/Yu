@@ -131,16 +131,17 @@ void CANx_Init(FDCAN_HandleTypeDef *h_can, CAN_RxCpltCallback rxCallback)
     if (h_can->Instance == FDCAN1) {
         can1.canHandler  = h_can;
         can1.RxCallBackCAN = rxCallback;
-        can1.xQueueCan = xQueueCreate(10, sizeof(can1.rxBuffer[0].data));
+        can1.xQueueCan = xQueueCreate(32, sizeof(CAN_RxBuffer_t));
     }
 
     //< 初始化can2
     if (h_can->Instance == FDCAN2) {
         can2.canHandler  = h_can;
         can2.RxCallBackCAN = rxCallback;
-        can2.xQueueCan = xQueueCreate(10, sizeof(can2.rxBuffer[0].data));
+        can2.xQueueCan = xQueueCreate(32, sizeof(CAN_RxBuffer_t));;
     }
 }
+
 
 /**
  * @brief 初始化并启动CAN通信接口
@@ -226,14 +227,14 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *h_can, uint32_t RxFifo0ITs)
     // 处理FDCAN1实例的接收数据
     if (h_can->Instance == FDCAN1) {
         // 从FDCAN1的接收FIFO0中获取数据，如果获取成功则调用用户回调函数
-        if (HAL_FDCAN_GetRxMessage(h_can, FDCAN_RX_FIFO0, &(can1.rxBuffer[can1.activeBuffer].rxHeader), can1.rxBuffer[can1.activeBuffer].data) != HAL_ERROR)
+        if (HAL_FDCAN_GetRxMessage(h_can, FDCAN_RX_FIFO0, &(can1.rxBuffer.rxHeader), can1.rxBuffer.data) != HAL_ERROR)
             can1.RxCallBackCAN(&can1);
     }
 
     // 处理FDCAN2实例的接收数据
     if (h_can->Instance == FDCAN2) {
         // 从FDCAN2的接收FIFO0中获取数据，如果获取成功则调用用户回调函数
-         if ((HAL_FDCAN_GetRxMessage(h_can, FDCAN_RX_FIFO0, &(can2.rxBuffer[can2.activeBuffer].rxHeader), can2.rxBuffer[can2.activeBuffer].data) != HAL_ERROR))
+         if ((HAL_FDCAN_GetRxMessage(h_can, FDCAN_RX_FIFO0, &(can2.rxBuffer.rxHeader), can2.rxBuffer.data) != HAL_ERROR))
             can2.RxCallBackCAN(&can2);
     }
 }
@@ -255,13 +256,13 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *h_can, uint32_t RxFifo1ITs)
     
     /* 处理FDCAN1实例的接收数据 */
     if (h_can->Instance == FDCAN1) {
-        if (HAL_FDCAN_GetRxMessage(h_can, FDCAN_RX_FIFO1, &(can1.rxBuffer[can1.activeBuffer].rxHeader), can1.rxBuffer[can1.activeBuffer].data) != HAL_ERROR)
+        if (HAL_FDCAN_GetRxMessage(h_can, FDCAN_RX_FIFO1, &(can1.rxBuffer.rxHeader), can1.rxBuffer.data) != HAL_ERROR)
             can1.RxCallBackCAN(&can1);
     }
 
     /* 处理FDCAN2实例的接收数据 */
     if (h_can->Instance == FDCAN2) {
-        if ((HAL_FDCAN_GetRxMessage(h_can, FDCAN_RX_FIFO1, &(can2.rxBuffer[can2.activeBuffer].rxHeader), can2.rxBuffer[can2.activeBuffer].data) != HAL_ERROR))
+        if ((HAL_FDCAN_GetRxMessage(h_can, FDCAN_RX_FIFO1, &(can2.rxBuffer.rxHeader), can2.rxBuffer.data) != HAL_ERROR))
             can2.RxCallBackCAN(&can2);
     }
 }
@@ -271,7 +272,9 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *h_can, uint32_t RxFifo1ITs)
  */
 uint8_t CAN1_rxCallBack(CAN_Instance_t *canObject)
 {
-    xQueueSendFromISR(canObject->xQueueCan, &(canObject->rxBuffer[canObject->activeBuffer].data), 0);
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xQueueSendFromISR(canObject->xQueueCan, &(canObject->rxBuffer.data), &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     return 0;
 }
 /**
@@ -279,6 +282,8 @@ uint8_t CAN1_rxCallBack(CAN_Instance_t *canObject)
  */
 uint8_t CAN2_rxCallBack(CAN_Instance_t *canObject)
 {
-    xQueueSendFromISR(canObject->xQueueCan, &(canObject->rxBuffer[canObject->activeBuffer].data), 0);
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xQueueSendFromISR(canObject->xQueueCan, &(canObject->rxBuffer.data), &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     return 0;
 }
