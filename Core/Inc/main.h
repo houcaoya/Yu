@@ -61,6 +61,8 @@ void Error_Handler(void);
 #define CSB_ACCEL_GPIO_Port GPIOA
 #define CSB_GYRO_Pin GPIO_PIN_4
 #define CSB_GYRO_GPIO_Port GPIOC
+#define SW_Pin GPIO_PIN_1
+#define SW_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 

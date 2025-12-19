@@ -132,98 +132,88 @@ void ShootInit(Shoot_t *shoot)
  *
  * @param shoot
  */
-// static void GetLoadData(Shoot_t *shoot)
-// {
-// 	shoot->loader.angle = shoot->loader.m3508.treatedData.angle;
+static void GetLoadData(Shoot_t *shoot)
+{
+	shoot->loader.angle = shoot->loader.m3508.treatedData.angle;
 	
-// 	if((shoot->loader.angle < -100) && (shoot->loader.last_angle > 100))
-// 		shoot->loader.total_angle += 360 + shoot->loader.angle - shoot->loader.last_angle;
-// 	else if(( shoot->loader.angle > 100) && (shoot->loader.last_angle < -100))
-// 		shoot->loader.total_angle += -360 + shoot->loader.angle - shoot->loader.last_angle;
-// 	else 
-// 		shoot->loader.total_angle += shoot->loader.angle-shoot->loader.last_angle;
-// 	shoot->loader.last_angle = shoot->loader.angle;
-// 	shoot->loader.axis_angle = shoot->loader.total_angle/27.0f;
+	if((shoot->loader.angle < -100) && (shoot->loader.last_angle > 100))
+		shoot->loader.total_angle += 360 + shoot->loader.angle - shoot->loader.last_angle;
+	else if(( shoot->loader.angle > 100) && (shoot->loader.last_angle < -100))
+		shoot->loader.total_angle += -360 + shoot->loader.angle - shoot->loader.last_angle;
+	else 
+		shoot->loader.total_angle += shoot->loader.angle-shoot->loader.last_angle;
+	shoot->loader.last_angle = shoot->loader.angle;
+	shoot->loader.axis_angle = shoot->loader.total_angle/27.0f;
 	
-// 	if(shoot->shootFlag.load_start == 1 && shoot->shootFlag.jam == 0)
-// 	{
-// 		shoot->loader.target_angle -= shoot->loader.unit_target_angle;
-// 		shoot->loader.axis_total_angle -= shoot->loader.unit_target_angle;
-// 	}
-// 	else 
-// 	{
-// 		shoot->loader.target_angle = shoot->loader.axis_angle;
-// 		shoot->loader.axis_total_angle = 0;
-// 	}
+	if(shoot->shootFlag.load_start == 1 && shoot->shootFlag.jam == 0)
+	{
+		shoot->loader.target_angle -= shoot->loader.unit_target_angle;
+		shoot->loader.axis_total_angle -= shoot->loader.unit_target_angle;
+	}
+	else 
+	{
+		shoot->loader.target_angle = shoot->loader.axis_angle;
+		shoot->loader.axis_total_angle = 0;
+	}
 	
-// 	/*記錄撥彈時間*/
-// 	if(shoot->shootFlag.load_start == 1)
-// 		shoot->shootCount.loader.load_time ++;
-// 	else 
-// 		shoot->shootCount.loader.load_time = 0;
+	/*記錄撥彈時間*/
+	if(shoot->shootFlag.load_start == 1)
+		shoot->shootCount.loader.load_time ++;
+	else 
+		shoot->shootCount.loader.load_time = 0;
 	
 		
-// }
+}
 
 /**
  * @brief 堵转判断
  *
  * @param shoot
  */
-// static void JamJudge(Shoot_t *shoot)
-// {
-// 	if((shoot->loader.m3508.treatedData.motor_output) <= -16000 && ABS(shoot->loader.m3508.rawData.speed_rpm < 20))//&& ABS(shoot->loader.m3508.rawData.speed_rpm < 20)
-// 		shoot->shootCount.loader.jammed_time++;
-// 	if((shoot->shootCount.loader.jammed_time > shoot->shootCount.loader.jammed_judge_time))
-// 	{
-// 		shoot->shootFlag.jam = 1;
-// 		shoot->shootCount.loader.load_turnback_time = 300;
-// 		shoot->shootCount.loader.jammed_time = 0;
-// 	}
-// 	if(shoot->shootCount.loader.load_turnback_time > 0)
-// 	{
-// 		shoot->shootFlag.fire = 0;
-// 		shoot->shootCount.loader.load_turnback_time--;
-// 		shoot->shootCount.loader.jammed_time = 0;
-// 		if(shoot->shootCount.loader.load_turnback_time <= 0)
-// 		{	
-// 			shoot->shootFlag.jam = 0;
-// 			shoot->shootCount.loader.load_turnback_time = 0;
-// 		}
-// 	}
-// }
+static void JamJudge(Shoot_t *shoot)
+{
+	if((shoot->loader.m3508.treatedData.motor_output) <= -16000 && ABS(shoot->loader.m3508.rawData.speed_rpm < 20))//&& ABS(shoot->loader.m3508.rawData.speed_rpm < 20)
+		shoot->shootCount.loader.jammed_time++;
+	if((shoot->shootCount.loader.jammed_time > shoot->shootCount.loader.jammed_judge_time))
+	{
+		shoot->shootFlag.jam = 1;
+		shoot->shootCount.loader.load_turnback_time = 300;
+		shoot->shootCount.loader.jammed_time = 0;
+	}
+	if(shoot->shootCount.loader.load_turnback_time > 0)
+	{
+		shoot->shootFlag.fire = 0;
+		shoot->shootCount.loader.load_turnback_time--;
+		shoot->shootCount.loader.jammed_time = 0;
+		if(shoot->shootCount.loader.load_turnback_time <= 0)
+		{	
+			shoot->shootFlag.jam = 0;
+			shoot->shootCount.loader.load_turnback_time = 0;
+		}
+	}
+}
 
 /**
  * @brief 获取發射機構数据 
  *
  * @param shoot
  */
-// static void ShootGetData(Shoot_t *shoot)
-// {	
-// 	shoot->booster.top.target_speed_config   = (shoot->booster.speed_top);
-// 	shoot->booster.left.target_speed_config  = -(shoot->booster.speed_left);
-// 	shoot->booster.right.target_speed_config = shoot->booster.speed_right;
+static void ShootGetData(Shoot_t *shoot)
+{	
+	shoot->booster.top.target_speed_config   = (shoot->booster.speed_top);
+	shoot->booster.left.target_speed_config  = -(shoot->booster.speed_left);
+	shoot->booster.right.target_speed_config = shoot->booster.speed_right;
 	
-// 	GetLoadData(shoot);
+	GetLoadData(shoot);
 	
-// 	// if(HAL_GPIO_ReadPin(SW_GPIO_Port, SW_Pin) == GPIO_PIN_RESET )
-// 	// 	shoot->shootFlag.shoot_ready = 1;
-// 	// else
-// 	// 	shoot->shootFlag.shoot_ready = 0;
+	if(HAL_GPIO_ReadPin(SW_GPIO_Port, SW_Pin) == GPIO_PIN_RESET )
+		shoot->shootFlag.shoot_ready = 1;
+	else
+		shoot->shootFlag.shoot_ready = 0;
 	
-// 	/*記錄發彈延遲*/
-// 	if(shoot->shootFlag.fire == 1)
-// 		shoot->shootCount.loader.interval_time ++;
-// 	else 
-// 		shoot->shootCount.loader.interval_time = 0;
-	
-// 	JamJudge(shoot);
-// //	if(shoot->shootCount.loader.load_time  > 5000)
-// //		shoot->loader.unit_target_angle = 0.15f;
-// //	else
-// //		shoot->loader.unit_target_angle = 0.30f;
+	JamJudge(shoot);
 		
-// }
+}
 
 /**
  * @brief 拨弹盘控制函数 发弹逻辑
@@ -292,7 +282,7 @@ static void ShootOutputCtrl(Shoot_t *shoot)
 void Shoot_Task(void)
 {
 #if(SHOOT_ENABLE == 1)
-		// if (rc_Ctrl.is_online == 1 || (rc_Ctrl.is_online == 0 && vT13.rc.mode_sw == 1))  //|| (vT13.rc.mode_sw == 1)
+		// if (rc_Ctrl.is_online == 1)
 		// 	Loadcontrol(&heroShoot);
 		// else
 		// {
@@ -301,7 +291,7 @@ void Shoot_Task(void)
 		// 	heroShoot.loader.total_angle                    = 0;
 		// 	heroShoot.shootFlag.load_start                  = 0;
 		// }
-		// ShootGetData(&heroShoot);
+		ShootGetData(&heroShoot);
 		// ShootControl(&heroShoot,&rc_Ctrl);
 		ShootOutputCtrl(&heroShoot);
 #endif	
