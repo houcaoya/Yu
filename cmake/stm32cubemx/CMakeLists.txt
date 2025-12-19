@@ -21,7 +21,6 @@ target_include_directories(stm32cubemx INTERFACE
     ../../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F
     ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include
     ../../Drivers/CMSIS/Include
-
 )
 
 target_sources(stm32cubemx INTERFACE
@@ -30,7 +29,9 @@ target_sources(stm32cubemx INTERFACE
     ../../Core/Src/freertos.c
     ../../Core/Src/dma.c
     ../../Core/Src/fdcan.c
+    ../../Core/Src/i2c.c
     ../../Core/Src/memorymap.c
+    ../../Core/Src/spi.c
     ../../Core/Src/usart.c
     ../../Core/Src/stm32h7xx_it.c
     ../../Core/Src/stm32h7xx_hal_msp.c
@@ -52,6 +53,8 @@ target_sources(stm32cubemx INTERFACE
     ../../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c_ex.c
     ../../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c
     ../../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_fdcan.c
+    ../../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi.c
+    ../../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi_ex.c
     ../../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c
     ../../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c
     ../../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c
@@ -70,7 +73,6 @@ target_sources(stm32cubemx INTERFACE
     ../../Core/Src/sysmem.c
     ../../Core/Src/syscalls.c
     ../../startup_stm32h750xx.s
-
 )
 
 target_link_directories(stm32cubemx INTERFACE

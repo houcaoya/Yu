@@ -57,9 +57,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define SW_Pin GPIO_PIN_15
-#define SW_GPIO_Port GPIOD
-#define SW_EXTI_IRQn EXTI15_10_IRQn
+#define CSB_ACCEL_Pin GPIO_PIN_4
+#define CSB_ACCEL_GPIO_Port GPIOA
+#define CSB_GYRO_Pin GPIO_PIN_4
+#define CSB_GYRO_GPIO_Port GPIOC
 
 /* USER CODE BEGIN Private defines */
 
