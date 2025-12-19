@@ -75,11 +75,9 @@
 /**
  * @brief CAN设备实例化结构体
  * 
- * 定义了CAN的发送缓冲区配置和设备链表
+ * 定义了CAN1的发送缓冲区配置和设备相关信息
  * - txBuffer.txHeader: 发送消息头配置，设置为标准ID、数据帧、8字节数据长度等
- * - devicesList: 设备链表指针数组，用于管理连接到CAN的设备
  */
-
 CAN_Instance_t can1 = {
     .txBuffer.txHeader =
         {
@@ -91,9 +89,14 @@ CAN_Instance_t can1 = {
             .FDFormat            = FDCAN_CLASSIC_CAN,        /**< 使用经典CAN格式 */
             .TxEventFifoControl  = FDCAN_NO_TX_EVENTS,       /**< 不记录发送事件 */
             .MessageMarker       = 0x00,                     /**< 消息标记为0 */
-        } /**< 创建CAN接收队列，队列长度为10，每个元素大小为接收数据缓冲区大小 */
+        }
 };
-
+/**
+ * @brief CAN设备实例化结构体
+ * 
+ * 定义了CAN2的发送缓冲区配置和设备相关信息
+ * 结构与can1相同，用于区分两个不同的CAN控制器
+ */
 CAN_Instance_t can2 = {
     .txBuffer.txHeader =
         {
@@ -107,7 +110,6 @@ CAN_Instance_t can2 = {
             .MessageMarker       = 0x00,                     /**< 消息标记为0 */
         }
 };
-
 /**
  * @brief 初始化CAN控制器
  * @param h_can CAN控制器句柄指针
@@ -116,21 +118,20 @@ CAN_Instance_t can2 = {
  * 
  * 该函数根据传入的CAN控制器句柄，初始化对应的CAN控制器结构体，
  * 并设置接收完成回调函数。支持FDCAN1和FDCAN2两个控制器的初始化。
+ * 同时创建FreeRTOS消息队列用于异步处理接收到的CAN数据。
  */
 void CANx_Init(FDCAN_HandleTypeDef *h_can, CAN_RxCpltCallback rxCallback)
 {
-    //< 初始化can1
-    if (h_can->Instance == FDCAN1) {
-        can1.canHandler  = h_can;
-        can1.RxCallBackCAN = rxCallback;
-        can1.xQueueCan = xQueueCreate(32, sizeof(CAN_RxBuffer_t));
-    }
+    CAN_Instance_t *pCan = NULL;
 
-    //< 初始化can2
-    if (h_can->Instance == FDCAN2) {
-        can2.canHandler  = h_can;
-        can2.RxCallBackCAN = rxCallback;
-        can2.xQueueCan = xQueueCreate(32, sizeof(CAN_RxBuffer_t));;
+    if (h_can->Instance == FDCAN1) pCan = &can1;
+    else if (h_can->Instance == FDCAN2) pCan = &can2;
+
+    if (pCan != NULL) {
+        pCan->canHandler     = h_can;
+        pCan->RxCallBackCAN  = rxCallback;
+        pCan->xQueueCan      = xQueueCreate(32, sizeof(CAN_RxBuffer_t));
+        pCan->tx_congest_cnt = 0;
     }
 }
 
@@ -146,35 +147,26 @@ void CANx_Init(FDCAN_HandleTypeDef *h_can, CAN_RxCpltCallback rxCallback)
  */
 uint8_t CAN_Open(CAN_Instance_t *can)
 {
-    FDCAN_FilterTypeDef filter[2]; //< 声明局部变量 can过滤器结构体
+    FDCAN_FilterTypeDef filter; 
 
-    /* 配置FDCAN过滤器0，设置为标准ID掩码过滤模式，接收所有消息到RXFIFO0 */
-    filter[0].IdType       = FDCAN_STANDARD_ID;        /* 设置ID类型为标准ID */
-    filter[0].FilterIndex  = 0;                        /* 设置过滤器索引为0 */
-    filter[0].FilterType   = FDCAN_FILTER_MASK;        /* 设置过滤器类型为掩码过滤 */
-    filter[0].FilterConfig = FDCAN_FILTER_TO_RXFIFO0;  /* 设置过滤器配置，匹配的消息发送到RXFIFO0 */
-    filter[0].FilterID1    = 0x000;                    /* 设置过滤器ID1为0x000 */
-    filter[0].FilterID2    = 0x000;                    /* 设置过滤器ID2为0x000，实现接收所有消息 */
-    if (HAL_FDCAN_ConfigFilter(can->canHandler, &filter[0]) != HAL_OK) /* 配置过滤器0，如果配置失败返回1 */
-        return 1;
+    /* 配置接收所有标准帧到 FIFO0 */
+    filter.IdType       = FDCAN_STANDARD_ID;
+    filter.FilterIndex  = 0;
+    filter.FilterType   = FDCAN_FILTER_MASK;
+    filter.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+    filter.FilterID1    = 0x000;
+    filter.FilterID2    = 0x000;
+    if (HAL_FDCAN_ConfigFilter(can->canHandler, &filter) != HAL_OK) return 1;
 
-    /* 配置FDCAN过滤器1，设置为标准ID掩码过滤模式，接收所有消息到RXFIFO1 */
-    filter[1].IdType       = FDCAN_STANDARD_ID;        /* 设置ID类型为标准ID */
-    filter[1].FilterIndex  = 1;                        /* 设置过滤器索引为1 */
-    filter[1].FilterType   = FDCAN_FILTER_MASK;        /* 设置过滤器类型为掩码过滤 */
-    filter[1].FilterConfig = FDCAN_FILTER_TO_RXFIFO1;  /* 设置过滤器配置，匹配的消息发送到RXFIFO1 */
-    filter[1].FilterID1    = 0x000;                    /* 设置过滤器ID1为0x000 */
-    filter[1].FilterID2    = 0x000;                    /* 设置过滤器ID2为0x000，实现接收所有消息 */
-    if (HAL_FDCAN_ConfigFilter(can->canHandler, &filter[1]) != HAL_OK)
-        return 1;
+    /* 配置接收所有标准帧到 FIFO1 (冗余或作为备用) */
+    filter.FilterIndex  = 1;
+    filter.FilterConfig = FDCAN_FILTER_TO_RXFIFO1;
+    if (HAL_FDCAN_ConfigFilter(can->canHandler, &filter) != HAL_OK) return 1;
 
-    // 配置全局过滤策略：拒绝不匹配的远程帧和数据帧
     HAL_FDCAN_ConfigGlobalFilter(can->canHandler, FDCAN_REJECT, FDCAN_REJECT, FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE);
-
-    // 启动CAN模块
     HAL_FDCAN_Start(can->canHandler);
 
-    // 使能FIFO0和FIFO1接收到新消息时的中断通知
+    /* 使能两个FIFO的新消息中断 */
     HAL_FDCAN_ActivateNotification(can->canHandler, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
     HAL_FDCAN_ActivateNotification(can->canHandler, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
 
@@ -186,6 +178,9 @@ uint8_t CAN_Open(CAN_Instance_t *can)
  * @param can: CAN实例指针，包含CAN控制器句柄和发送缓冲区信息
  * @param bufferTx: 发送数据缓冲区指针，包含要发送的CAN消息头和数据
  * @retval uint8_t: 发送结果，1表示发送成功，0表示发送失败
+ * 
+ * 该函数首先检查发送FIFO是否有空闲位置，如果有则尝试发送数据。
+ * 如果发送FIFO长时间满载，则会采取措施清除发送请求以避免死锁。
  */
 uint8_t CAN_Send(CAN_Instance_t *can, CAN_TxBuffer_t *bufferTx)
 {
@@ -193,89 +188,84 @@ uint8_t CAN_Send(CAN_Instance_t *can, CAN_TxBuffer_t *bufferTx)
     can->txBuffer.txHeader.Identifier = bufferTx->txHeader.Identifier;
     can->txBuffer.txHeader.IdType     = bufferTx->txHeader.IdType;
     can->txBuffer.txHeader.DataLength = bufferTx->txHeader.DataLength;
-    
-    /* 将消息添加到发送FIFO队列，通过HAL库函数实现CAN数据发送 */
-    if (HAL_FDCAN_AddMessageToTxFifoQ(can->canHandler, &can->txBuffer.txHeader, bufferTx->data) != HAL_OK) 
-        return 0;
+
+    // 检查 FIFO 是否有空位
+    if (HAL_FDCAN_GetTxFifoFreeLevel(can->canHandler) > 0)
+    {
+        can->tx_congest_cnt = 0; 
+        if (HAL_FDCAN_AddMessageToTxFifoQ(can->canHandler, &can->txBuffer.txHeader, bufferTx->data) == HAL_OK)
+        {
+            return 1; // 发送成功
+        }
+        else
+        {
+            return 0; // 发送失败
+        }
+    }
     else
-        return 1;
+    {
+        // 发送FIFO满，增加拥塞计数器
+        can->tx_congest_cnt++;
+        if (can->tx_congest_cnt >= 10)
+        {
+            HAL_FDCAN_AbortTxRequest(can->canHandler, FDCAN_TX_BUFFER0 | FDCAN_TX_BUFFER1 | FDCAN_TX_BUFFER2);
+            can->tx_congest_cnt = 0;
+        }
+        return 0; 
+    }
+}
+/**
+ * @brief 内部函数：通用 RX 处理逻辑，合并 FIFO0 和 FIFO1
+ * @param h_can: CAN控制器句柄
+ * @param rxFifo: 接收FIFO编号（FDCAN_RX_FIFO0 或 FDCAN_RX_FIFO1）
+ * 
+ * 此函数统一处理来自两个接收FIFO的中断，从中读取数据并通过回调函数传递给上层应用
+ */
+static void CAN_CommonRxHandler(FDCAN_HandleTypeDef *h_can, uint32_t rxFifo)
+{
+    CAN_Instance_t *pCan = NULL;
+
+    if (h_can->Instance == FDCAN1) pCan = &can1;
+    else if (h_can->Instance == FDCAN2) pCan = &can2;
+
+    if (pCan == NULL) return;
+
+    if (HAL_FDCAN_GetRxMessage(h_can, rxFifo, &pCan->rxBuffer.rxHeader, pCan->rxBuffer.data) == HAL_OK)
+    {
+        if (pCan->RxCallBackCAN != NULL)
+        {
+            pCan->RxCallBackCAN(pCan);
+        }
+    }
 }
 
-/**
- * @brief  FDCAN接收FIFO0回调函数
- * @param  h_can: FDCAN句柄指针
- * @param  RxFifo0ITs: 接收FIFO0中断类型标志
- * @retval 无
- * 
- * 该函数是FDCAN接收FIFO0的中断回调处理函数，当FDCAN模块接收到数据并存储到FIFO0中时被调用。
- * 函数会根据具体的FDCAN实例（FDCAN1或FDCAN2）从对应的接收缓冲区获取数据，
- * 并调用相应的用户回调函数进行数据处理。
- */
+// 统一调用通用处理函数
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *h_can, uint32_t RxFifo0ITs)
 {
-    // 防止编译器警告，表示该参数未被使用
     (void)RxFifo0ITs;
-    
-    // 处理FDCAN1实例的接收数据
-    if (h_can->Instance == FDCAN1) {
-        // 从FDCAN1的接收FIFO0中获取数据，如果获取成功则调用用户回调函数
-        if (HAL_FDCAN_GetRxMessage(h_can, FDCAN_RX_FIFO0, &(can1.rxBuffer.rxHeader), can1.rxBuffer.data) != HAL_ERROR)
-            can1.RxCallBackCAN(&can1);
-    }
-
-    // 处理FDCAN2实例的接收数据
-    if (h_can->Instance == FDCAN2) {
-        // 从FDCAN2的接收FIFO0中获取数据，如果获取成功则调用用户回调函数
-         if ((HAL_FDCAN_GetRxMessage(h_can, FDCAN_RX_FIFO0, &(can2.rxBuffer.rxHeader), can2.rxBuffer.data) != HAL_ERROR))
-            can2.RxCallBackCAN(&can2);
-    }
+    CAN_CommonRxHandler(h_can, FDCAN_RX_FIFO0);
 }
 
-/**
- * @brief  FDCAN接收FIFO1回调函数
- * @param  h_can: FDCAN句柄指针
- * @param  RxFifo1ITs: 接收FIFO1中断类型标志
- * @retval 无
- * 
- * 该函数是FDCAN接收FIFO1的中断回调处理函数，当FDCAN模块从FIFO1接收到数据时被调用。
- * 函数会根据具体的FDCAN实例（FDCAN1或FDCAN2）从对应的接收缓冲区获取数据，
- * 并调用相应的用户回调函数进行数据处理。
- */
 void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *h_can, uint32_t RxFifo1ITs)
 {
-    /* 防止编译器警告，未使用参数 */
     (void)RxFifo1ITs;
+    CAN_CommonRxHandler(h_can, FDCAN_RX_FIFO1);
+}
+
+/**
+ * @brief  CAN接收中断回调 (通用)
+ * @note   将整个 rxBuffer (含ID和数据) 发送至队列
+ */
+static uint8_t CAN_General_RxCallback(CAN_Instance_t *canObject)
+{
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     
-    /* 处理FDCAN1实例的接收数据 */
-    if (h_can->Instance == FDCAN1) {
-        if (HAL_FDCAN_GetRxMessage(h_can, FDCAN_RX_FIFO1, &(can1.rxBuffer.rxHeader), can1.rxBuffer.data) != HAL_ERROR)
-            can1.RxCallBackCAN(&can1);
-    }
-
-    /* 处理FDCAN2实例的接收数据 */
-    if (h_can->Instance == FDCAN2) {
-        if ((HAL_FDCAN_GetRxMessage(h_can, FDCAN_RX_FIFO1, &(can2.rxBuffer.rxHeader), can2.rxBuffer.data) != HAL_ERROR))
-            can2.RxCallBackCAN(&can2);
-    }
-}
-
-/**
- * @brief  CAN1接收中断回调
- */
-uint8_t CAN1_rxCallBack(CAN_Instance_t *canObject)
-{
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    xQueueSendFromISR(canObject->xQueueCan, &(canObject->rxBuffer.data), &xHigherPriorityTaskWoken);
+    // 在中断服务例程中向队列发送接收到的CAN数据
+    xQueueSendFromISR(canObject->xQueueCan, &canObject->rxBuffer, &xHigherPriorityTaskWoken);
+    
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     return 0;
 }
-/**
- * @brief  CAN2接收中断回调
- */
-uint8_t CAN2_rxCallBack(CAN_Instance_t *canObject)
-{
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    xQueueSendFromISR(canObject->xQueueCan, &(canObject->rxBuffer.data), &xHigherPriorityTaskWoken);
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    return 0;
-}
+
+uint8_t CAN1_rxCallBack(CAN_Instance_t *canObject) { return CAN_General_RxCallback(canObject); }
+uint8_t CAN2_rxCallBack(CAN_Instance_t *canObject) { return CAN_General_RxCallback(canObject); }

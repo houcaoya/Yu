@@ -42,7 +42,7 @@ typedef struct _CAN_Instance_t {
     CAN_TxBuffer_t txBuffer;                            // 发送缓存区结构体
     uint8_t (*RxCallBackCAN)(struct _CAN_Instance_t *); // 接收回调函数
     QueueHandle_t xQueueCan;                            // CAN接收队列
-    uint8_t activeBuffer;                               // 当前活动缓冲区索引 (0 或 1)
+    uint16_t tx_congest_cnt;                            // 发送拥塞计数 
 } CAN_Instance_t;
 
 /**
