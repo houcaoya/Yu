@@ -119,12 +119,16 @@ static void MotorEcdtoAngle(Motor_t *motor)
  */
 static uint8_t CAN_update_data(RawData_t *raw, TreatedData_t *treated, uint8_t *data)
 {
-    treated->last_ecd    = raw->raw_ecd;
-    raw->raw_ecd         = (int16_t)(data[0] << 8 | data[1]);
-    raw->speed_rpm       = (int16_t)(data[2] << 8 | data[3]);
-    raw->torque_current  = (int16_t)(data[4] << 8 | data[5]);
-    raw->temperature     = data[6];
-    treated->fps++;
+    if(xSemaphoreTake(treated->dataMutex, portMAX_DELAY) == pdTRUE)
+    {
+        treated->last_ecd    =  raw->raw_ecd;
+        raw->raw_ecd         = (int16_t)(data[0] << 8 | data[1]);
+        raw->speed_rpm       = (int16_t)(data[2] << 8 | data[3]);
+        raw->torque_current  = (int16_t)(data[4] << 8 | data[5]);
+        raw->temperature     = data[6];
+        treated->fps++;
+        xSemaphoreGive(treated->dataMutex);
+    }
     return 0;
 }
 
@@ -179,7 +183,7 @@ void MotorInit(Motor_t *motor, uint16_t ecdOffset, motor_type type, uint16_t gea
  * @param bufferRx  接收缓冲区指针
  * @note 该函数用于处理电机相关的CAN接收数据，解析电机反馈信息并更新电机状态
  */
-void MotorRxCallback(CAN_Instance_t *canObject, CAN_RxBuffer_t *bufferRx)
+void MotorProcess(CAN_Instance_t *canObject, CAN_RxBuffer_t *bufferRx)
 {
     uint32_t id = bufferRx->rxHeader.Identifier;
     
@@ -190,7 +194,7 @@ void MotorRxCallback(CAN_Instance_t *canObject, CAN_RxBuffer_t *bufferRx)
     uint8_t can_idx = (canObject->canHandler == &hfdcan2) ? 1 : 0;
     uint8_t id_idx  = id - 0x200;
 
-    // 3. 直接获取对象 (无需 MotorFind 遍历)
+    // 3. 直接获取对象
     Motor_t *motor = Motor_QuickMap[can_idx][id_idx];
 
     // 4. 处理数据

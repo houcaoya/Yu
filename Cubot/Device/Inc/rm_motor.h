@@ -3,6 +3,8 @@
 
 #include "stm32h7xx_hal.h"
 #include "driver_can.h"
+#include "freertos.h"
+#include "semphr.h"
 
 #define K_ECD_TO_ANGLE         0.043945f //< 角度转换编码器刻度的系数：360/8192
 #define ECD_RANGE_FOR_3508     8191      //< 编码器刻度值为0-8191
@@ -38,6 +40,7 @@ typedef struct
  */
 typedef struct
 {
+    SemaphoreHandle_t dataMutex;
     int32_t ecd;              //< 当前编码器返回值处理值
     int32_t last_ecd;         //< 上一时刻编码器返回值处理值
 	int32_t treated_ecd;
@@ -89,7 +92,7 @@ typedef struct
 
 void Motor_DriverInit(void);
 void MotorInit(Motor_t *motor, uint16_t ecdOffset, motor_type type, uint16_t gearRatio, CanNumber canx, uint16_t id);
-void MotorRxCallback(CAN_Instance_t *canObject, CAN_RxBuffer_t *bufferRx);
+void MotorProcess(CAN_Instance_t *canObject, CAN_RxBuffer_t *bufferRx);
 void MotorFillData(Motor_t *motor, int32_t output);
 uint16_t MotorCanOutput(CAN_Instance_t can, int16_t IDforTxBuffer);
 

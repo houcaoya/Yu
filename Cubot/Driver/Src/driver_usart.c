@@ -112,21 +112,16 @@ void UART_Idle_Handler(UART_Object *uart)
 		{
 			// 计算本次DMA实际接收到的数据长度
 			uint16_t received_len = sizeof(uart->uart_RxBuffer[uart->activeBuffer].Data) - __HAL_DMA_GET_COUNTER(uart->Handle->hdmarx);
-
 			// 若流缓冲区有效，则将接收到的数据发送到流缓冲区中
 			if(uart->stream_buffer != NULL && uart->stream_buffer != NULL)
 			{
 				BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
-
 				// 在中断服务例程中向流缓冲区发送数据
 				xStreamBufferSendFromISR(uart->stream_buffer, &uart->uart_RxBuffer[uart->activeBuffer].Data, received_len, &pxHigherPriorityTaskWoken);
-
 				// 切换活动缓冲区，实现双缓冲机制
 				uart->activeBuffer = 1 - uart->activeBuffer;
-
 				// 重新启动DMA接收，继续监听新数据
 				HAL_UART_Receive_DMA(uart->Handle, uart->uart_RxBuffer[uart->activeBuffer].Data,200);  
-
 				// 如果有更高优先级的任务因本次发送而被唤醒，则执行一次上下文切换
 				portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 			}

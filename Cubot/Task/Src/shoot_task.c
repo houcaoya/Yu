@@ -152,29 +152,31 @@ void ShootInit(Shoot_t *shoot)
  */
 static void GetLoadData(Shoot_t *shoot)
 {
-	taskENTER_CRITICAL();
-	shoot->loader.angle = shoot->loader.m3508.treatedData.angle;
-	
-	if((shoot->loader.angle < -100) && (shoot->loader.last_angle > 100))
-		shoot->loader.total_angle += 360 + shoot->loader.angle - shoot->loader.last_angle;
-	else if(( shoot->loader.angle > 100) && (shoot->loader.last_angle < -100))
-		shoot->loader.total_angle += -360 + shoot->loader.angle - shoot->loader.last_angle;
-	else 
-		shoot->loader.total_angle += shoot->loader.angle-shoot->loader.last_angle;
-	shoot->loader.last_angle = shoot->loader.angle;
-	shoot->loader.axis_angle = shoot->loader.total_angle/27.0f;
-	
-	if(shoot->shootFlag.load_start == 1 && shoot->shootFlag.jam == 0)
+	if(xSemaphoreTake(shoot->loader.m3508.treatedData.dataMutex, portMAX_DELAY) == pdTRUE)
 	{
-		shoot->loader.target_angle -= shoot->loader.unit_target_angle;
-		shoot->loader.axis_total_angle -= shoot->loader.unit_target_angle;
+		shoot->loader.angle = shoot->loader.m3508.treatedData.angle;
+		
+		xSemaphoreGive(shoot->loader.m3508.treatedData.dataMutex);
 	}
-	else 
-	{
-		shoot->loader.target_angle = shoot->loader.axis_angle;
-		shoot->loader.axis_total_angle = 0;
-	}	
-	taskEXIT_CRITICAL(); 
+		if((shoot->loader.angle < -100) && (shoot->loader.last_angle > 100))
+			shoot->loader.total_angle += 360 + shoot->loader.angle - shoot->loader.last_angle;
+		else if(( shoot->loader.angle > 100) && (shoot->loader.last_angle < -100))
+			shoot->loader.total_angle += -360 + shoot->loader.angle - shoot->loader.last_angle;
+		else 
+			shoot->loader.total_angle += shoot->loader.angle-shoot->loader.last_angle;
+		shoot->loader.last_angle = shoot->loader.angle;
+		shoot->loader.axis_angle = shoot->loader.total_angle/27.0f;
+		
+		if(shoot->shootFlag.load_start == 1 && shoot->shootFlag.jam == 0)
+		{
+			shoot->loader.target_angle -= shoot->loader.unit_target_angle;
+			shoot->loader.axis_total_angle -= shoot->loader.unit_target_angle;
+		}
+		else 
+		{
+			shoot->loader.target_angle = shoot->loader.axis_angle;
+			shoot->loader.axis_total_angle = 0;
+		}	
 }
 
 /**
@@ -185,7 +187,7 @@ static void GetLoadData(Shoot_t *shoot)
 static void JamJudge(Shoot_t *shoot)
 {
 	taskENTER_CRITICAL();
-	if((shoot->loader.m3508.treatedData.motor_output) <= -16000 && ABS(shoot->loader.m3508.rawData.speed_rpm < 20))//&& ABS(shoot->loader.m3508.rawData.speed_rpm < 20)
+	if((shoot->loader.m3508.treatedData.motor_output) <= -16000 && ABS(shoot->loader.m3508.rawData.speed_rpm < 20))
 		shoot->shootCount.loader.jammed_time++;
 	if((shoot->shootCount.loader.jammed_time > shoot->shootCount.loader.jammed_judge_time))
 	{

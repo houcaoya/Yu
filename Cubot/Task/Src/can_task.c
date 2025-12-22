@@ -21,9 +21,9 @@ void CanTask_Process(void *argument)
         {   
             /* 根据CAN实例类型调用对应的电机接收回调函数 */
             if(can == &can1)
-                MotorRxCallback(&can1, &task_local_buffer);
+                MotorProcess(&can1, &task_local_buffer);
             else if(can == &can2)
-                MotorRxCallback(&can2, &task_local_buffer);
+                MotorProcess(&can2, &task_local_buffer);
         }
         
         /* 获取任务堆栈使用情况，用于监控任务堆栈使用峰值 */

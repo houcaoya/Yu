@@ -25,8 +25,9 @@ static void BasePID_Init_All(void)
  */
 void Init_Task(void *argument)
 {
-    /* 避免编译器警告，标记参数为未使用 */
     (void)argument;
+
+    vTaskSuspendAll();
 
     UARTx_Init(&uart1);
     UARTx_Init(&uart3);
@@ -39,22 +40,22 @@ void Init_Task(void *argument)
 	CAN_Open(&can2);
 
     BasePID_Init_All();
-    /* 创建UART任务用于处理串口通信 */
+    /* 创建UART任务用于收发数据 */
     xTaskCreate(Referee_Task, "Referee_Task", 512, NULL, osPriorityNormal-1, NULL);
     xTaskCreate(Brain_Task, "Brian_Task", 512, NULL, osPriorityNormal-1, NULL);
     xTaskCreate(Print_Task,"Print_Task",256,NULL,osPriorityNormal-2,NULL);
-    /* 创建CAN任务用于处理CAN通信 */
+    /* 创建CAN任务用于接收数据 */
     xTaskCreate(CanTask_Process, "CanTask_Process", 256, &can1, osPriorityNormal+1, NULL);
     xTaskCreate(CanTask_Process, "CanTask_Process", 256, &can2, osPriorityNormal+1, NULL);
-
+    /* 创建运动学解算任务用于处理数据 */
     xTaskCreate(Shoot_Task,"Shoot_Task",256,NULL,osPriorityNormal,NULL);
     xTaskCreate(Chassis_Task,"Chassis_Task",256,NULL,osPriorityNormal,NULL);
     xTaskCreate(Holder_Task,"Holder_Task",512,NULL,osPriorityNormal,NULL);
 
-    /* 创建电机驱动任务 */
+    /* 初始化电机驱动任务 */
     Motor_DriverInit();
+    xTaskResumeAll();
 
-    /* 获取init任务的栈空间使用情况 */
     #ifdef DEBUG
     uxHighWaterMark_init = uxTaskGetStackHighWaterMark(NULL);
     #endif
